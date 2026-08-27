@@ -1,0 +1,163 @@
+/* src/pages/Awareness.css */
+
+.awareness-page {
+  padding-top: 2rem;
+  padding-bottom: 4rem;
+}
+
+/* ── Tabs ─────────────────────────────────────────────────── */
+.scam-tabs {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.scam-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.65rem 1.25rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.scam-tab-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-heading);
+  border-color: var(--border);
+}
+
+.scam-tab-btn.active {
+  background: var(--brand-gradient);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 15px rgba(99,102,241,0.35);
+}
+
+.scam-tab-icon {
+  font-size: 1.1rem;
+}
+
+/* ── Deep Dive Card ───────────────────────────────────────── */
+.scam-detail-card {
+  padding: 2.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.scam-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.scam-detail-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  background: rgba(99,102,241,0.15);
+  border: 1px solid rgba(99,102,241,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.scam-detail-header h2 {
+  font-size: 1.6rem;
+  margin-bottom: 0.35rem;
+}
+
+.scam-detail-header p {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Scam Columns */
+.scam-block {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.red-flags-block {
+  border-left: 3px solid var(--severity-critical);
+}
+
+.safety-block {
+  border-left: 3px solid var(--severity-low);
+}
+
+.block-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.scam-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.scam-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.bullet-cross {
+  color: var(--severity-critical);
+  font-weight: 800;
+  margin-top: 1px;
+}
+
+.bullet-check {
+  color: var(--severity-low);
+  font-weight: 800;
+  margin-top: 1px;
+}
+
+/* Footer CTA */
+.scam-footer-cta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.scam-footer-cta h4 {
+  font-size: 1rem;
+  margin-bottom: 0.2rem;
+}
+
+.scam-footer-cta p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}

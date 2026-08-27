@@ -1,0 +1,70 @@
+# CyberCrimeAI Project Presentation Outline
+
+This presentation outline spans 5 slides and covers the total workflow, authentication flow, and the entire feature set of the CyberCrimeAI project. You can use this to create your PPT. 
+
+[Add Photo Here] means you should insert a screenshot or image in your PowerPoint.
+
+---
+
+## Slide 1: Introduction to CyberCrimeAI
+**Title**: CyberCrimeAI: Modern Cybercrime Reporting Platform
+**Content**:
+- A state-of-the-art web application designed to streamline the reporting of cybercrimes.
+- Built with a focus on user experience, modern aesthetics, and AI-assisted workflows.
+- Aims to reduce the barrier for citizens to report incidents accurately and securely.
+
+**Visuals**: 
+- **[Add Photo Here]**: A screenshot of the Home Page showing the interactive stats counter or the hero section.
+
+---
+
+## Slide 2: Comprehensive Authentication Flow
+**Title**: Secure & Flexible User Authentication
+**Content**:
+- **Traditional Login/Registration**: Users can create an account using their email, name, and phone number.
+- **SSO Integration**: Quick access via Google Single Sign-On (Demo).
+- **DigiLocker Integration**: Verification of identity using DigiLocker (Demo) for trusted reporting.
+- **Session Security**: Password hashing and secure session management.
+
+**Visuals**: 
+- **[Add Photo Here]**: A screenshot of the Login or Registration page.
+- **[Add Photo Here]**: A simple flowchart diagram showing `User -> Login/SSO/DigiLocker -> Dashboard`.
+
+---
+
+## Slide 3: Total Application Workflow (Step-by-Step)
+**Title**: How CyberCrimeAI Works
+**Content**:
+1. **Initiation**: User logs in and navigates to the Dashboard.
+2. **Category Selection**: Choose from 15 specialized cybercrime categories using the grid layout and live-search.
+3. **AI Incident Analysis**: The AI Chat Sandbox analyzes the incident in real-time, determines the risk level, and suggests actionable checklists.
+4. **Dynamic Data Collection**: AI generates dynamic questions tailored specifically to the type of crime.
+5. **Review & Submit**: User previews the complaint details, uploads evidence, and submits.
+6. **Report Generation**: The system generates a formal PDF report and provides a tracking reference number (e.g., CC-YYYY-NNNNN).
+
+**Visuals**: 
+- **[Add Photo Here]**: A screenshot of the incident reporting form or the preview page.
+
+---
+
+## Slide 4: Key Project Features (Part 1)
+**Title**: Core Features & Capabilities
+**Content**:
+- **Interactive AI Chat Sandbox**: Real-time banking fraud/incident analysis, dynamic risk leveling, and target questions.
+- **15 Specialized Cyber Crime Categories**: Fully featured grid layout representing all categories from the project roadmap, with responsive live-search capabilities.
+- **Emergency Numbers Portal**: One-tap emergency helpline calls (1930 / 112 / 1091) directly from the platform.
+
+**Visuals**: 
+- **[Add Photo Here]**: A screenshot of the AI Chat Sandbox or the 15 Category Grid.
+
+---
+
+## Slide 5: Key Project Features (Part 2)
+**Title**: Modern UI & Automated Reporting
+**Content**:
+- **Dynamic UI/UX**: State-of-the-art UI elements, custom dark/light theme accents, interactive stats counter, and smooth micro-animations.
+- **Automated PDF Generation**: Automatically formats the user's answers and evidence into a formal legal document for submission.
+- **Dashboard Tracking**: A secure dashboard for users to track their past reports and manage their profile.
+
+**Visuals**: 
+- **[Add Photo Here]**: A screenshot of the Dashboard or a sample of the generated PDF report.

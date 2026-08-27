@@ -1,0 +1,13 @@
+.env
+__pycache__/
+*.pyc
+venv/
+env/
+.venv/
+instance/
+*.db
+*.sqlite
+session_uploads/
+scratch_*/
+.vscode/
+Thumbs.db

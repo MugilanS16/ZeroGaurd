@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Step 1: Incident Description - ZeroGuard AI{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/wizard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container wizard-container animate-fade-in">
+
+  <!-- Step Progress Bar -->
+  <div class="wizard-progress">
+    <div class="wizard-step active">
+      <div class="wizard-step-circle">1</div>
+      <div class="wizard-step-label">Incident</div>
+    </div>
+    <div class="wizard-step">
+      <div class="wizard-step-circle">2</div>
+      <div class="wizard-step-label">Questions</div>
+    </div>
+    <div class="wizard-step">
+      <div class="wizard-step-circle">3</div>
+      <div class="wizard-step-label">Guidance</div>
+    </div>
+    <div class="wizard-step">
+      <div class="wizard-step-circle">4</div>
+      <div class="wizard-step-label">Preview</div>
+    </div>
+    <div class="wizard-step">
+      <div class="wizard-step-circle">5</div>
+      <div class="wizard-step-label">Submit</div>
+    </div>
+  </div>
+
+  <div class="wizard-card">
+    
+    <div class="wizard-header">
+      <span class="wizard-step-tag">Step 1 of 5 &bull; Incident Intake</span>
+      <h2>Describe the Cybercrime Incident</h2>
+      <p style="font-size: 0.95rem; margin-top: 0.25rem;">
+        Write what happened in your own words. You can write in English, Hindi, Tamil, or Telugu. Our AI will classify the crime, scrub confidential credentials, and draft a police complaint.
+      </p>
+    </div>
+
+    <form method="POST" action="{{ url_for('report.report_step1') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <!-- Language Selector -->
+      <div class="form-group" style="max-width: 320px;">
+        <label class="form-label" for="language-select">Preferred Input Language</label>
+        <select name="language" id="language-select" class="form-control">
+          {% for code, name in languages.items() %}
+            <option value="{{ code }}" {% if draft.language == code %}selected{% endif %}>{{ name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Raw Incident Textarea -->
+      <div class="form-group">
+        <div class="flex justify-between items-center" style="margin-bottom: 0.4rem;">
+          <label class="form-label" for="raw_description" style="margin-bottom: 0;">Incident Narrative</label>
+          <button type="button" id="btn-ai-polish" class="btn btn-ai btn-sm" title="Convert rough/regional description into formal FIR complaint format">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            <span>Polish & Structure with AI</span>
+          </button>
+        </div>
+
+        <textarea 
+          name="raw_description" 
+          id="raw_description" 
+          class="form-control" 
+          rows="6" 
+          placeholder="e.g. Someone called posing as bank officer asking for KYC update. I clicked the SMS link and received an unauthorized debit of Rs 45,000 via UPI..."
+          required
+          autofocus
+        >{{ draft.raw_description }}</textarea>
+        
+        <div class="form-help">
+          💡 <strong>Tip:</strong> Include dates, approximate amounts, suspect phone/WhatsApp numbers, fake links, or payment apps involved.
+        </div>
+        <div id="ai-polish-feedback" style="display: none;"></div>
+      </div>
+
+      <!-- Optional Polished Description (Hidden or shown if polished) -->
+      <input type="hidden" name="formal_description" id="formal_description" value="{{ draft.formal_description }}">
+
+      <!-- Real-Time AI Live Triage Panel -->
+      <div class="ai-card" id="live-triage-panel" style="margin: 1.5rem 0;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div class="pulse-dot"></div>
+            <span class="ai-badge" style="margin-bottom: 0;">Live AI Triage</span>
+          </div>
+          <div class="flex gap-2 items-center">
+            <span id="live-category-badge" class="badge badge-medium" style="font-size: 0.82rem; font-weight: 700;">
+              {{ draft.crime_type if draft.raw_description else 'Awaiting Input...' }}
+            </span>
+            <span id="live-risk-badge" class="badge {{ draft.risk_level|risk_badge }}">
+              {{ draft.risk_level }} Risk
+            </span>
+            <span id="live-confidence-text" style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;"></span>
+          </div>
+        </div>
+        
+        <p id="live-summary-text" style="font-size: 0.88rem; margin: 0; color: var(--text-main);">
+          Start typing your incident description above to see real-time AI category matching and risk scoring.
+        </p>
+      </div>
+
+      <!-- Submit & Next Actions -->
+      <div class="flex justify-between items-center" style="margin-top: 2rem;">
+        <a href="{{ url_for('report.home') }}" class="btn btn-outline">Cancel</a>
+        <button type="submit" class="btn btn-primary btn-lg">
+          <span>Proceed to Follow-Up Questions (Step 2) &rarr;</span>
+        </button>
+      </div>
+
+    </form>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/wizard.js') }}"></script>
+{% endblock %}

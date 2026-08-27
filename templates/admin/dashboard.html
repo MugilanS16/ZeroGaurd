@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Cyber-Cell Incident Intelligence & Admin Console - ZeroGuard AI{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-wide animate-fade-in">
+
+  <!-- Admin Header -->
+  <div class="admin-header">
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="badge badge-critical" style="font-size: 0.8rem; letter-spacing: 0.5px;">AUTHORIZED LAW ENFORCEMENT ACCESS</span>
+      </div>
+      <h1 style="font-size: 1.85rem; margin-top: 0.25rem;">Cyber-Cell Incident Intelligence Console</h1>
+      <p style="font-size: 0.9rem; margin: 0;">
+        Logged in as <strong>{{ current_admin.fullname }}</strong> &bull; Cybercrime Incident Response & Triage Command
+      </p>
+    </div>
+
+    <div class="flex gap-2">
+      <a href="{{ url_for('report.report_step1') }}" class="btn btn-outline btn-sm">
+        + Log New Complaint
+      </a>
+      <a href="{{ url_for('tracker.track') }}" class="btn btn-outline btn-sm">
+        Public Tracker View
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI Metric Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card kpi-total">
+      <span class="kpi-label">Total Incidents</span>
+      <span class="kpi-value">{{ total_count }}</span>
+      <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">Across all categories</span>
+    </div>
+
+    <div class="kpi-card kpi-critical">
+      <span class="kpi-label">High / Critical Urgency</span>
+      <span class="kpi-value" style="color: var(--danger);">{{ critical_count }}</span>
+      <span style="font-size: 0.8rem; color: var(--danger); margin-top: 0.4rem;">Requires immediate action</span>
+    </div>
+
+    <div class="kpi-card kpi-pending">
+      <span class="kpi-label">Pending Triage</span>
+      <span class="kpi-value" style="color: var(--warning);">{{ pending_count }}</span>
+      <span style="font-size: 0.8rem; color: var(--warning); margin-top: 0.4rem;">Awaiting officer review</span>
+    </div>
+
+    <div class="kpi-card kpi-resolved">
+      <span class="kpi-label">Resolved & Frozen</span>
+      <span class="kpi-value" style="color: var(--accent-green);">{{ resolved_count }}</span>
+      <span style="font-size: 0.8rem; color: var(--accent-green); margin-top: 0.4rem;">Case successfully handled</span>
+    </div>
+  </div>
+
+  <!-- Chart.js Analytics Grid -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Complaints by Threat Category</div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Real-time distribution</span>
+      </div>
+      <div class="chart-container">
+        <canvas id="chart-category"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Status Breakdown</div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Triage resolution</span>
+      </div>
+      <div class="chart-container">
+        <canvas id="chart-status"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Complaints Priority Datatable Section -->
+  <div class="card" style="padding: 1.5rem;">
+    <div class="table-filter-bar">
+      <div>
+        <h3 style="font-size: 1.25rem; margin-bottom: 0.25rem;">Incident Priority Queue</h3>
+        <p style="font-size: 0.88rem; margin: 0; color: var(--text-muted);">
+          Sorted automatically by AI Urgency Score & High-Priority Signals
+        </p>
+      </div>
+
+      <!-- Filter Form -->
+      <form method="GET" action="{{ url_for('admin.dashboard') }}" class="filter-controls">
+        <input 
+          type="text" 
+          name="q" 
+          class="form-control" 
+          placeholder="Search by Ref, Keyword, Victim..." 
+          value="{{ search_query }}"
+          style="font-size: 0.85rem; padding: 0.45rem 0.75rem; width: 220px;"
+        >
+
+        <select name="status" class="form-control" style="font-size: 0.85rem; padding: 0.45rem 0.75rem; width: auto;">
+          <option value="">All Statuses</option>
+          <option value="Pending" {% if status_filter == 'Pending' %}selected{% endif %}>Pending</option>
+          <option value="In Review" {% if status_filter == 'In Review' %}selected{% endif %}>In Review</option>
+          <option value="Resolved" {% if status_filter == 'Resolved' %}selected{% endif %}>Resolved</option>
+        </select>
+
+        <select name="risk" class="form-control" style="font-size: 0.85rem; padding: 0.45rem 0.75rem; width: auto;">
+          <option value="">All Risks</option>
+          <option value="Critical" {% if risk_filter == 'Critical' %}selected{% endif %}>Critical Risk</option>
+          <option value="High" {% if risk_filter == 'High' %}selected{% endif %}>High Risk</option>
+          <option value="Medium" {% if risk_filter == 'Medium' %}selected{% endif %}>Medium Risk</option>
+          <option value="Low" {% if risk_filter == 'Low' %}selected{% endif %}>Low Risk</option>
+        </select>
+
+        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        {% if status_filter or risk_filter or crime_filter or search_query %}
+          <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline btn-sm">Reset</a>
+        {% endif %}
+      </form>
+    </div>
+
+    <!-- Table -->
+    <div style="overflow-x: auto; margin-top: 1rem;">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Reference Code</th>
+            <th>Threat Category</th>
+            <th>Risk Level</th>
+            <th>Amount Verification</th>
+            <th>Complainant</th>
+            <th>Date Reported</th>
+            <th>Status</th>
+            <th style="text-align: right;">Investigation Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in complaints %}
+            <tr class="{% if c.risk_level == 'Critical' %}row-critical{% elif c.risk_level == 'High' %}row-high{% endif %}">
+              <td>
+                <a href="{{ url_for('admin.complaint_detail', complaint_id=c.id) }}" style="font-weight: 700; font-family: monospace; font-size: 0.95rem;">
+                  {{ c.reference_number }}
+                </a>
+              </td>
+              <td>
+                <span style="font-weight: 600;">{{ c.crime_type }}</span>
+              </td>
+              <td>
+                <span class="badge {{ c.risk_level|risk_badge }}">
+                  {{ c.risk_level }} ({{ c.risk_score }}/100)
+                </span>
+              </td>
+              <td>
+                {% if c.amount_verification_status == 'Verified' %}
+                  <span class="badge badge-success" title="Claimed amount matched evidence OCR">✅ Verified</span>
+                {% elif c.amount_verification_status == 'Manual Review Needed' %}
+                  <span class="badge badge-warning" title="Discrepancy flagged for manual review">⚠️ Manual Review</span>
+                {% elif c.amount_verification_status == 'Mismatch' %}
+                  <span class="badge badge-critical" title="Claimed amount mismatched evidence OCR">❌ Mismatch</span>
+                {% else %}
+                  <span class="badge badge-secondary" style="font-size: 0.75rem;">➖ N/A</span>
+                {% endif %}
+              </td>
+              <td>
+                <div style="font-weight: 500;">{{ c.user.fullname if c.user else 'Anonymous Citizen' }}</div>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">{{ c.user.email if c.user else 'Guest' }}</div>
+              </td>
+              <td>
+                <span style="font-size: 0.85rem;">{{ c.created_at|datetime('%d %b %Y, %I:%M %p') }}</span>
+              </td>
+              <td>
+                <span class="badge {{ c.status|status_badge }}">{{ c.status }}</span>
+              </td>
+              <td style="text-align: right;">
+                <div class="flex items-center justify-end gap-2">
+                  <a href="{{ url_for('admin.complaint_detail', complaint_id=c.id) }}" class="btn btn-outline btn-sm">
+                    Investigate &rarr;
+                  </a>
+                  <a href="{{ url_for('report.download_pdf', reference_number=c.reference_number) }}" class="btn btn-outline btn-sm" title="Download Official ReportLab PDF">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    PDF
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="7" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                No complaints found matching the selected filter criteria.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Embedded JSON data for Chart.js -->
+<script type="application/json" id="admin-chart-data">
+{{ chart_data|tojson }}
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% endblock %}

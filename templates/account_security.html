@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block title %}Account Security - ZeroGuard AI{% endblock %}
+
+{% block content %}
+<div class="container animate-fade-in">
+  <div style="margin-bottom: 2rem;">
+    <h2>Account & Security Center</h2>
+    <p>Manage your authentication credentials, review active login sessions, and control your data privacy settings.</p>
+  </div>
+
+  <div class="grid grid-3 gap-6">
+    
+    <!-- Column 1: Profile & Credentials -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+      <div class="card">
+        <h3 style="font-size: 1.15rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          Profile Details
+        </h3>
+        <div style="font-size: 0.9rem; display: flex; flex-direction: column; gap: 0.75rem;">
+          <div>
+            <div style="color: var(--text-muted); font-size: 0.8rem;">Full Name</div>
+            <div style="font-weight: 600;">{{ user.fullname }}</div>
+          </div>
+          <div>
+            <div style="color: var(--text-muted); font-size: 0.8rem;">Email Address</div>
+            <div style="font-weight: 600;">{{ user.email }}</div>
+          </div>
+          <div>
+            <div style="color: var(--text-muted); font-size: 0.8rem;">Registered Mobile</div>
+            <div style="font-weight: 600;">{{ user.phone or 'Not Provided' }}</div>
+          </div>
+          <div>
+            <div style="color: var(--text-muted); font-size: 0.8rem;">Account Role</div>
+            <div>
+              {% if user.is_admin %}
+                <span class="badge badge-critical">Cyber-Cell Admin</span>
+              {% else %}
+                <span class="badge badge-success">Verified Citizen</span>
+              {% endif %}
+            </div>
+          </div>
+          <div>
+            <div style="color: var(--text-muted); font-size: 0.8rem;">Member Since</div>
+            <div>{{ user.created_at|datetime }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Password Change Card -->
+      <div class="card">
+        <h3 style="font-size: 1.15rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          Change Password
+        </h3>
+
+        <form method="POST" action="{{ url_for('auth.account_security') }}">
+          {{ form.hidden_tag() }}
+
+          <div class="form-group">
+            <label class="form-label" for="current_password">Current Password</label>
+            {{ form.current_password(class="form-control" + (" is-invalid" if form.current_password.errors else ""), id="current_password") }}
+            {% for error in form.current_password.errors %}
+              <div class="form-error">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="new_password">New Password</label>
+            {{ form.new_password(class="form-control" + (" is-invalid" if form.new_password.errors else ""), id="new_password") }}
+            {% for error in form.new_password.errors %}
+              <div class="form-error">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="confirm_new_password">Confirm New Password</label>
+            {{ form.confirm_new_password(class="form-control" + (" is-invalid" if form.confirm_new_password.errors else ""), id="confirm_new_password") }}
+            {% for error in form.confirm_new_password.errors %}
+              <div class="form-error">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          {{ form.submit(class="btn btn-primary btn-block") }}
+        </form>
+      </div>
+    </div>
+
+    <!-- Column 2 & 3: Login Audit History & GDPR Privacy Area -->
+    <div style="grid-column: span 2; display: flex; flex-direction: column; gap: 1.5rem;">
+      
+      <!-- Emergency Trusted Contact Card -->
+      <div class="card" style="border-left: 5px solid var(--warning);">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+          <h3 style="font-size: 1.15rem; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-size: 1.2rem;">🛡️</span>
+            Emergency Trusted Contact
+          </h3>
+          {% if emergency_contact %}
+            <span class="badge badge-success">Active & Verified</span>
+          {% else %}
+            <span class="badge badge-warning">Action Recommended</span>
+          {% endif %}
+        </div>
+
+        <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4;">
+          Your trusted contact must be someone close to you — a parent, guardian, family member, or close friend — who can be reached on your behalf in an emergency. Do not add a stranger or acquaintance.
+        </p>
+
+        {% if emergency_contact %}
+          <!-- Display Existing Contact Details -->
+          <div style="background: var(--bg-surface-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.25rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; font-size: 0.9rem;">
+              <div>
+                <div style="color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; font-weight: 600;">Contact Name</div>
+                <div style="font-weight: 700; font-size: 1rem; color: var(--text-main); margin-top: 0.2rem;">{{ emergency_contact.contact_name }}</div>
+              </div>
+              <div>
+                <div style="color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; font-weight: 600;">Relationship</div>
+                <div style="margin-top: 0.2rem;"><span class="badge badge-medium">{{ emergency_contact.relationship }}</span></div>
+              </div>
+              <div>
+                <div style="color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; font-weight: 600;">Email Address</div>
+                <div style="font-weight: 600; margin-top: 0.2rem;">{{ emergency_contact.email }}</div>
+              </div>
+              <div>
+                <div style="color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; font-weight: 600;">Mobile Number</div>
+                <div style="font-weight: 600; margin-top: 0.2rem; font-family: monospace;">{{ emergency_contact.phone }}</div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle);">
+              <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('edit-contact-form').style.display = document.getElementById('edit-contact-form').style.display === 'none' ? 'block' : 'none';">
+                ✏️ Edit Contact Details
+              </button>
+              
+              <form method="POST" action="{{ url_for('auth.delete_emergency_contact') }}" onsubmit="return confirm('Are you sure you want to remove your emergency contact?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger btn-sm">
+                  🗑️ Remove Contact
+                </button>
+              </form>
+            </div>
+          </div>
+        {% endif %}
+
+        <!-- Form for Adding / Editing Contact -->
+        <div id="edit-contact-form" style="{% if emergency_contact %}display: none;{% endif %} margin-top: 0.5rem;">
+          <form method="POST" action="{{ url_for('auth.save_emergency_contact') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="grid grid-2 gap-4">
+              <div class="form-group" style="margin-bottom: 1rem;">
+                <label class="form-label" for="contact_name">Contact Full Name <span style="color: var(--danger);">*</span></label>
+                <input type="text" id="contact_name" name="contact_name" class="form-control" placeholder="e.g. Rajesh Sharma" value="{{ emergency_contact.contact_name if emergency_contact else '' }}" required>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 1rem;">
+                <label class="form-label" for="relationship">Relationship <span style="color: var(--danger);">*</span></label>
+                <select id="relationship" name="relationship" class="form-control" required>
+                  <option value="" disabled {% if not emergency_contact %}selected{% endif %}>Select Relationship...</option>
+                  {% for rel in ['Parent', 'Guardian', 'Spouse', 'Sibling', 'Other Family Member', 'Close Friend'] %}
+                    <option value="{{ rel }}" {% if emergency_contact and emergency_contact.relationship == rel %}selected{% endif %}>{{ rel }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 1rem;">
+                <label class="form-label" for="contact_email">Contact Email Address <span style="color: var(--danger);">*</span></label>
+                <input type="email" id="contact_email" name="email" class="form-control" placeholder="e.g. rajesh.sharma@example.com" value="{{ emergency_contact.email if emergency_contact else '' }}" required>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 1rem;">
+                <label class="form-label" for="contact_phone">Contact Mobile Number (10-Digit India) <span style="color: var(--danger);">*</span></label>
+                <input type="tel" id="contact_phone" name="phone" class="form-control" placeholder="e.g. 9876543210" value="{{ emergency_contact.phone if emergency_contact else '' }}" required>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-sm" style="margin-top: 0.5rem;">
+              💾 Save & Send Verification Email
+            </button>
+          </form>
+        </div>
+
+        <!-- Privacy & Notification Note -->
+        <div style="background: var(--bg-surface-subtle); border-radius: var(--radius-sm); padding: 0.75rem 1rem; margin-top: 1.25rem; font-size: 0.82rem; color: var(--text-muted); line-height: 1.4;">
+          🔒 <strong>Privacy Guarantee:</strong> Your trusted contact's information is encrypted and will strictly be notified only during high-risk incident escalations or verified account recovery procedures. Your trusted contact will receive a one-time email letting them know they've been added, so they're aware and can help if a critical situation ever arises.
+        </div>
+      </div>
+
+      <!-- Login History -->
+
+      <div class="card">
+        <h3 style="font-size: 1.15rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          Security Audit & Login History
+        </h3>
+        <p style="font-size: 0.88rem; margin-bottom: 1.25rem;">ZeroGuard AI monitors every sign-in attempt to detect anomalous access and protect your citizen profile.</p>
+
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.88rem; text-align: left;">
+            <thead>
+              <tr style="border-bottom: 2px solid var(--border-subtle); color: var(--text-muted);">
+                <th style="padding: 0.75rem 0.5rem;">Timestamp</th>
+                <th style="padding: 0.75rem 0.5rem;">IP Address</th>
+                <th style="padding: 0.75rem 0.5rem;">Client / Device</th>
+                <th style="padding: 0.75rem 0.5rem;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in recent_logins %}
+                <tr style="border-bottom: 1px solid var(--border-subtle);">
+                  <td style="padding: 0.75rem 0.5rem; font-weight: 500;">{{ record.timestamp|datetime }}</td>
+                  <td style="padding: 0.75rem 0.5rem; font-family: monospace;">{{ record.ip_address }}</td>
+                  <td style="padding: 0.75rem 0.5rem; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted);" title="{{ record.user_agent }}">
+                    {{ record.user_agent }}
+                  </td>
+                  <td style="padding: 0.75rem 0.5rem;">
+                    {% if record.status == 'SUCCESS' %}
+                      <span class="badge badge-success">SUCCESS</span>
+                    {% else %}
+                      <span class="badge badge-critical">FAILED</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% else %}
+                <tr>
+                  <td colspan="4" style="padding: 1.5rem; text-align: center; color: var(--text-muted);">No login history records available.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- GDPR & Data Privacy / Account Deletion -->
+      <div class="card" style="border-left: 4px solid var(--danger);">
+        <h3 style="font-size: 1.15rem; margin-bottom: 0.5rem; color: var(--danger); display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          Data Privacy & Account Erasure (Right to be Forgotten)
+        </h3>
+        <p style="font-size: 0.88rem; margin-bottom: 1rem;">In accordance with the Digital Personal Data Protection (DPDP) Act, you can permanently erase your account credentials and personal records from our system.</p>
+
+        <form method="POST" action="{{ url_for('auth.delete_account') }}" onsubmit="return confirm('Are you certain you want to delete your account? This action cannot be reversed.');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          
+          <div style="margin-bottom: 1rem; font-size: 0.88rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+              <input type="checkbox" name="anonymize_data" value="true" checked>
+              <span>Anonymize existing submitted complaints (allows ongoing cyber-cell investigation while detaching all personal identifiers).</span>
+            </label>
+          </div>
+
+          <button type="submit" class="btn btn-danger btn-sm">
+            Permanently Delete My Account & Personal Data
+          </button>
+        </form>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+{% endblock %}

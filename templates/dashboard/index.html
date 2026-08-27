@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Citizen Dashboard - ZeroGuard AI{% endblock %}
+
+{% block content %}
+<div class="container animate-fade-in">
+  
+  <!-- Header Bar -->
+  <div class="flex justify-between items-center flex-wrap gap-4" style="margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-subtle);">
+    <div style="max-width: 720px;">
+      <div class="flex items-center gap-2" style="margin-bottom: 0.5rem;">
+        <span class="badge badge-success">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+          Verified Citizen Profile
+        </span>
+      </div>
+      <h1 style="font-size: clamp(1.5rem, 3.5vw, 2.25rem); font-weight: 800; margin-bottom: 0.5rem;">My Incident Reports & Dossiers</h1>
+      <p style="font-size: 0.95rem; margin: 0; color: var(--text-muted);">
+        Review your submitted cybercrime complaints, track official Cyber-Cell updates, and download police-ready PDFs.
+      </p>
+    </div>
+
+    <div class="flex items-center gap-3 flex-wrap">
+      <a href="{{ url_for('report.report_step1') }}" class="btn btn-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>Report New Incident</span>
+      </a>
+      <a href="{{ url_for('auth.account_security') }}" class="btn btn-outline" title="Manage Account Security">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Security
+      </a>
+    </div>
+  </div>
+
+  <!-- Emergency Trusted Contact Reminder Banner -->
+  {% if current_user and not current_user.emergency_contact %}
+    <div class="card" style="background: rgba(245, 158, 11, 0.08); border: 1.5px solid var(--warning); padding: 1.25rem 1.5rem; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1.25rem; flex-wrap: wrap;">
+      <div style="display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 280px;">
+        <div style="width: 42px; height: 42px; border-radius: var(--radius-full); background: rgba(245, 158, 11, 0.2); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0; color: var(--warning);">
+          🛡️
+        </div>
+        <div>
+          <strong style="color: var(--text-main); font-size: 0.95rem; display: block;">Emergency Contact Recommendation:</strong>
+          <span style="color: var(--text-muted); font-size: 0.88rem; margin-top: 0.15rem; display: block;">
+            You haven't added an Emergency Trusted Contact yet. Add one in Account Security to receive instant automated SMS safety alerts.
+          </span>
+        </div>
+      </div>
+      <a href="{{ url_for('auth.account_security') }}" class="btn btn-warning btn-sm" style="white-space: nowrap;">
+        + Add Contact Now &rarr;
+      </a>
+    </div>
+  {% endif %}
+
+  <!-- Metric KPI Cards -->
+  <div class="grid grid-4 gap-4" style="margin-bottom: 2rem;">
+
+    <div class="stat-card">
+      <div class="flex justify-between items-center">
+        <span class="stat-label">Total Lodged</span>
+        <div style="width: 36px; height: 36px; border-radius: var(--radius-md); background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+      </div>
+      <span class="stat-number">{{ total_count }}</span>
+    </div>
+
+    <div class="stat-card stat-pending">
+      <div class="flex justify-between items-center">
+        <span class="stat-label" style="color: var(--warning);">Pending Review</span>
+        <div style="width: 36px; height: 36px; border-radius: var(--radius-md); background: var(--warning-light); color: var(--warning); display: flex; align-items: center; justify-content: center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+      </div>
+      <span class="stat-number" style="color: var(--warning);">{{ pending_count }}</span>
+    </div>
+
+    <div class="stat-card stat-review">
+      <div class="flex justify-between items-center">
+        <span class="stat-label" style="color: var(--info);">In Investigation</span>
+        <div style="width: 36px; height: 36px; border-radius: var(--radius-md); background: var(--info-light); color: var(--info); display: flex; align-items: center; justify-content: center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+      </div>
+      <span class="stat-number" style="color: var(--info);">{{ in_review_count }}</span>
+    </div>
+
+    <div class="stat-card stat-resolved">
+      <div class="flex justify-between items-center">
+        <span class="stat-label" style="color: var(--accent-green);">Resolved Cases</span>
+        <div style="width: 36px; height: 36px; border-radius: var(--radius-md); background: var(--accent-green-light); color: var(--accent-green); display: flex; align-items: center; justify-content: center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+      </div>
+      <span class="stat-number" style="color: var(--accent-green);">{{ resolved_count }}</span>
+    </div>
+
+  </div>
+
+  <!-- Complaints Table Card -->
+  <div class="card" style="padding: 1.5rem;">
+    
+    <!-- Header & Filter Pills -->
+    <div class="flex justify-between items-center flex-wrap gap-3" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-subtle);">
+      <div>
+        <h3 style="font-size: 1.2rem; margin: 0;">Case History</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">Track investigation progress and access official police dossiers.</p>
+      </div>
+
+      <div class="flex gap-2 flex-wrap">
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-sm {% if not status_filter %}btn-primary{% else %}btn-outline{% endif %}">
+          All ({{ total_count }})
+        </a>
+        <a href="{{ url_for('dashboard.index', status='Pending') }}" class="btn btn-sm {% if status_filter == 'Pending' %}btn-primary{% else %}btn-outline{% endif %}">
+          Pending ({{ pending_count }})
+        </a>
+        <a href="{{ url_for('dashboard.index', status='In Review') }}" class="btn btn-sm {% if status_filter == 'In Review' %}btn-primary{% else %}btn-outline{% endif %}">
+          In Review ({{ in_review_count }})
+        </a>
+        <a href="{{ url_for('dashboard.index', status='Resolved') }}" class="btn btn-sm {% if status_filter == 'Resolved' %}btn-primary{% else %}btn-outline{% endif %}">
+          Resolved ({{ resolved_count }})
+        </a>
+      </div>
+    </div>
+
+    <!-- Responsive Table Wrapper -->
+    <div class="table-responsive">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem; text-align: left;">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--border-subtle); color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px;">
+            <th style="padding: 0.85rem 1rem;">Reference Code</th>
+            <th style="padding: 0.85rem 1rem;">Offense Category</th>
+            <th style="padding: 0.85rem 1rem;">Risk Priority</th>
+            <th style="padding: 0.85rem 1rem;">Date Filed</th>
+            <th style="padding: 0.85rem 1rem;">Status</th>
+            <th style="padding: 0.85rem 1rem; text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in complaints %}
+            <tr style="border-bottom: 1px solid var(--border-subtle); transition: background-color var(--transition-fast);" onmouseover="this.style.backgroundColor='var(--bg-surface-elevated)'" onmouseout="this.style.backgroundColor='transparent'">
+              <td style="padding: 1rem; font-family: monospace; font-weight: 700; color: var(--primary);">
+                {{ c.reference_number }}
+              </td>
+              <td style="padding: 1rem; font-weight: 600;">
+                {{ c.crime_type }}
+              </td>
+              <td style="padding: 1rem;">
+                <span class="badge {{ c.risk_level|risk_badge }}">
+                  {{ c.risk_level }}
+                </span>
+              </td>
+              <td style="padding: 1rem; color: var(--text-muted); font-size: 0.85rem;">
+                {{ c.created_at|datetime('%d %b %Y') }}
+              </td>
+              <td style="padding: 1rem;">
+                <span class="badge {{ c.status|status_badge }}">
+                  {{ c.status }}
+                </span>
+              </td>
+              <td style="padding: 1rem; text-align: right;">
+                <div class="flex items-center justify-end gap-2">
+                  <a href="{{ url_for('tracker.track', ref=c.reference_number) }}" class="btn btn-outline btn-sm" title="Track Live Status">
+                    Track &rarr;
+                  </a>
+                  <a href="{{ url_for('report.download_pdf', reference_number=c.reference_number) }}" class="btn btn-primary btn-sm" title="Download Verified PDF">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    PDF
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 4rem 1.5rem;">
+                <div style="width: 64px; height: 64px; border-radius: var(--radius-full); background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1.25rem; color: var(--text-muted);">
+                  📂
+                </div>
+                <h4 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.4rem; color: var(--text-main);">No Complaints Found</h4>
+                <p style="font-size: 0.9rem; margin: 0 auto 1.5rem; max-width: 420px; color: var(--text-muted);">
+                  You haven't submitted any cybercrime incident reports yet or no records match your selected status filter.
+                </p>
+                <a href="{{ url_for('report.report_step1') }}" class="btn btn-primary">
+                  + File Your First Complaint
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

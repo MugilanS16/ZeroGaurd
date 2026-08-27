@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Complaint Submitted - ZeroGuard AI{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/wizard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container wizard-container animate-fade-in">
+
+  <!-- Step Progress Bar -->
+  <div class="wizard-progress">
+    <div class="wizard-step completed"><div class="wizard-step-circle">&#10003;</div><div class="wizard-step-label">Incident</div></div>
+    <div class="wizard-step completed"><div class="wizard-step-circle">&#10003;</div><div class="wizard-step-label">Questions</div></div>
+    <div class="wizard-step completed"><div class="wizard-step-circle">&#10003;</div><div class="wizard-step-label">Guidance</div></div>
+    <div class="wizard-step completed"><div class="wizard-step-circle">&#10003;</div><div class="wizard-step-label">Preview</div></div>
+    <div class="wizard-step completed"><div class="wizard-step-circle">&#10003;</div><div class="wizard-step-label">Submitted</div></div>
+  </div>
+
+  <div class="wizard-card" style="text-align: center;">
+    
+    <div class="brand-icon" style="margin: 0 auto 1.5rem; width: 64px; height: 64px; background: var(--accent-green);">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+
+    <h2 style="font-size: 2rem; color: var(--text-main);">Complaint Successfully Registered!</h2>
+    <p style="font-size: 1rem; color: var(--text-muted); max-width: 600px; margin: 0.5rem auto 1.75rem;">
+      Your cybercrime incident report has been securely compiled, assigned to the investigation queue, and a verified ReportLab PDF has been generated.
+    </p>
+
+    <!-- Reference Number Display Box -->
+    <div style="background: var(--bg-surface-subtle); border: 2px dashed var(--primary); border-radius: var(--radius-lg); padding: 1.5rem; max-width: 480px; margin: 0 auto 2rem;">
+      <div style="font-size: 0.85rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px;">
+        Complaint Reference Code
+      </div>
+      <div style="font-size: 2rem; font-weight: 800; font-family: monospace; color: var(--primary); margin: 0.4rem 0;">
+        {{ ref_number }}
+      </div>
+      <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 0.5rem;">
+        <button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText('{{ ref_number }}'); alert('Reference number copied to clipboard: {{ ref_number }}');">
+          📋 Copy Reference Code
+        </button>
+      </div>
+    </div>
+
+    <!-- Action Buttons: Download PDF & Track -->
+    <div class="flex items-center justify-center gap-3" style="flex-wrap: wrap; margin-bottom: 2.5rem;">
+      <a href="{{ url_for('report.download_pdf', reference_number=ref_number) }}" class="btn btn-primary btn-lg" style="box-shadow: var(--shadow-md);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>Download Official PDF Complaint</span>
+      </a>
+
+      <a href="{{ url_for('tracker.track', ref=ref_number) }}" class="btn btn-outline btn-lg">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <span>Track Status Online</span>
+      </a>
+    </div>
+
+    <!-- Privacy Disclaimer Badge -->
+    <div style="background: var(--accent-green-light); border: 1px solid var(--accent-green); border-radius: var(--radius-md); padding: 0.85rem 1.25rem; font-size: 0.88rem; color: var(--accent-green); max-width: 620px; margin: 0 auto 2rem; text-align: left; display: flex; align-items: flex-start; gap: 0.75rem;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      <div>
+        <strong>Privacy-by-Design Accomplished:</strong> All temporary evidence files uploaded during your session have been permanently erased from our disk following successful PDF compilation.
+      </div>
+    </div>
+
+    <!-- What Happens Next Timeline -->
+    <div style="text-align: left; max-width: 620px; margin: 0 auto; border-top: 1px solid var(--border-subtle); padding-top: 2rem;">
+      <h3 style="font-size: 1.15rem; margin-bottom: 1rem;">What Happens Next?</h3>
+      
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-marker"></div>
+          <strong>Step 1: Immediate Triage & Golden Hour Alert</strong>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.25rem;">
+            If this was a financial cyber fraud, dial <strong>1930</strong> immediately with your reference number to enable inter-bank fraud lien requests.
+          </p>
+        </div>
+
+        <div class="timeline-item">
+          <div class="timeline-marker" style="background: var(--border-subtle); box-shadow: none;"></div>
+          <strong>Step 2: Cyber-Cell Officer Assignment</strong>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.25rem;">
+            An investigating officer reviews the compiled incident details, beneficiary VPAs, and evidence logs.
+          </p>
+        </div>
+
+        <div class="timeline-item">
+          <div class="timeline-marker" style="background: var(--border-subtle); box-shadow: none;"></div>
+          <strong>Step 3: Resolution & Citizen Status Notification</strong>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.25rem;">
+            You will receive email updates whenever case notes or status changes are recorded by investigating authorities.
+          </p>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 2rem;">
+        {% if is_logged_in %}
+          <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary">
+            Go to My Complaints Dashboard &rarr;
+          </a>
+        {% else %}
+          <a href="{{ url_for('report.home') }}" class="btn btn-secondary">
+            Return to Homepage &rarr;
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

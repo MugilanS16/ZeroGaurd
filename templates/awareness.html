@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Cybercrime Awareness & Interactive Quiz - ZeroGuard AI{% endblock %}
+
+{% block content %}
+<div class="container animate-fade-in">
+  
+  <!-- Hero Section -->
+  <div style="text-align: center; max-width: 800px; margin: 0 auto 3rem;">
+    <div class="ai-badge" style="margin-bottom: 1rem;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+      </svg>
+      Citizen Cyber Shield Hub
+    </div>
+    <h1 style="font-size: 2.3rem;">Cyber Threat Awareness & Interactive Quiz</h1>
+    <p style="font-size: 1.05rem; color: var(--text-muted); margin-top: 0.5rem;">
+      Learn the modus operandi of modern cyber fraud syndicates, master prevention protocols, and test your scam detection instincts.
+    </p>
+  </div>
+
+  <!-- 4 Golden Rules of Cyber Defense -->
+  <div class="grid grid-4 gap-4" style="margin-bottom: 3.5rem;">
+    <div class="card">
+      <div style="font-size: 2rem; margin-bottom: 0.5rem;">⏱️</div>
+      <h3 style="font-size: 1.05rem; margin-bottom: 0.35rem;">The Golden Hour (1930)</h3>
+      <p style="font-size: 0.85rem;">Reporting financial cyber fraud within the first 2-3 hours enables nodal officers to freeze stolen money before ATM withdrawal.</p>
+    </div>
+
+    <div class="card">
+      <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔑</div>
+      <h3 style="font-size: 1.05rem; margin-bottom: 0.35rem;">UPI PIN is to PAY, Not Receive</h3>
+      <p style="font-size: 0.85rem;">You NEVER need to enter a UPI PIN or scan a QR code to receive money, cashback, or OLX buyer payments.</p>
+    </div>
+
+    <div class="card">
+      <div style="font-size: 2rem; margin-bottom: 0.5rem;">🛑</div>
+      <h3 style="font-size: 1.05rem; margin-bottom: 0.35rem;">No AnyDesk for Customer Care</h3>
+      <p style="font-size: 0.85rem;">Never install remote desktop apps (AnyDesk, RustDesk, TeamViewer) at the request of customer support callers.</p>
+    </div>
+
+    <div class="card">
+      <div style="font-size: 2rem; margin-bottom: 0.5rem;">🛡️</div>
+      <h3 style="font-size: 1.05rem; margin-bottom: 0.35rem;">Sextortion: Never Pay</h3>
+      <p style="font-size: 0.85rem;">Paying extortionists leads to higher demands. Preserve evidence, block, use StopNCII.org, and report to authorities.</p>
+    </div>
+  </div>
+
+  <!-- Interactive Quiz Section -->
+  <div style="max-width: 800px; margin: 0 auto 4rem;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+      <span class="badge badge-medium" style="margin-bottom: 0.5rem;">Interactive Challenge</span>
+      <h2>Spot the Social Engineering Scam</h2>
+      <p style="font-size: 0.95rem; color: var(--text-muted);">
+        Can you differentiate legitimate messages from sophisticated social engineering traps? Test yourself across 6 real-world scenarios.
+      </p>
+    </div>
+
+    <!-- Questions Container populated by quiz.js -->
+    <div id="quiz-questions-container"></div>
+
+    <!-- Final Score & Certificate Card -->
+    <div id="quiz-score-card" class="card card-elevated animate-fade-in" style="display: none; text-align: center; padding: 2.5rem; background: var(--bg-surface); border: 2px solid var(--primary);">
+      <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏆</div>
+      <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Quiz Completed!</h3>
+      <div style="font-size: 1rem; color: var(--text-muted); margin-bottom: 1rem;">Your Threat Detection Score:</div>
+      <div id="score-number" style="font-size: 2.5rem; font-weight: 800; font-family: var(--font-heading); color: var(--primary); margin-bottom: 1rem;">
+        0 / 6
+      </div>
+      <div>
+        <span id="score-badge" class="badge badge-success" style="font-size: 1rem; padding: 0.5rem 1.25rem;">
+          Cyber Aware
+        </span>
+      </div>
+
+      <div style="margin-top: 2rem; display: flex; justify-content: center; gap: 1rem;">
+        <button id="reset-quiz-btn" type="button" class="btn btn-outline">
+          Retake Quiz
+        </button>
+        <a href="{{ url_for('report.report_step1') }}" class="btn btn-primary">
+          File an Incident Report &rarr;
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Common Scam Vectors Guide -->
+  <div style="margin-bottom: 3rem;">
+    <h2 style="text-align: center; margin-bottom: 2rem;">Comprehensive Threat Profiles</h2>
+    
+    <div class="grid grid-2 gap-4">
+      <div class="card">
+        <h3 style="font-size: 1.15rem; color: var(--primary); margin-bottom: 0.5rem;">1. "Digital Arrest" & Police Impersonation Scams</h3>
+        <p style="font-size: 0.88rem;">Fraudsters pose as CBI, Customs, or Police officers on Skype/WhatsApp video calls claiming your Aadhaar or FedEx parcel was caught with narcotics, demanding money for "clearance". <strong>Fact:</strong> Law enforcement never conducts video call arrests or demands money transfers.</p>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size: 1.15rem; color: var(--primary); margin-bottom: 0.5rem;">2. SMS Phishing for PAN / Electricity Bill</h3>
+        <p style="font-size: 0.88rem;">Messages claiming your electricity power will be disconnected at 9:30 PM unless a bill is paid via an APK link. <strong>Fact:</strong> Electricity boards never send mobile numbers or APK download links.</p>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size: 1.15rem; color: var(--primary); margin-bottom: 0.5rem;">3. Crypto Trading & Fake Stock Tips</h3>
+        <p style="font-size: 0.88rem;">WhatsApp groups offering insider stock market tips with fake institutional trading app screenshots showing 400% profit. <strong>Fact:</strong> All fake investment platforms fabricate profit numbers and refuse withdrawals.</p>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size: 1.15rem; color: var(--primary); margin-bottom: 0.5rem;">4. SIM Swap Fraud</h3>
+        <p style="font-size: 0.88rem;">Attackers clone your mobile SIM card through telecom operator impersonation to intercept banking OTPs. <strong>Fact:</strong> If your mobile network suddenly disappears without reason, contact your mobile operator immediately.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/quiz.js') }}"></script>
+{% endblock %}

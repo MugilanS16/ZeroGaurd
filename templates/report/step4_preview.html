@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Step 4: Complaint Preview - ZeroGuard AI{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/wizard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container wizard-container animate-fade-in">
+
+  <!-- Step Progress Bar -->
+  <div class="wizard-progress">
+    <div class="wizard-step completed">
+      <div class="wizard-step-circle">&#10003;</div>
+      <div class="wizard-step-label">Incident</div>
+    </div>
+    <div class="wizard-step completed">
+      <div class="wizard-step-circle">&#10003;</div>
+      <div class="wizard-step-label">Questions</div>
+    </div>
+    <div class="wizard-step completed">
+      <div class="wizard-step-circle">&#10003;</div>
+      <div class="wizard-step-label">Guidance</div>
+    </div>
+    <div class="wizard-step active">
+      <div class="wizard-step-circle">4</div>
+      <div class="wizard-step-label">Preview</div>
+    </div>
+    <div class="wizard-step">
+      <div class="wizard-step-circle">5</div>
+      <div class="wizard-step-label">Submit</div>
+    </div>
+  </div>
+
+  <div class="wizard-card">
+    
+    <div class="wizard-header">
+      <span class="wizard-step-tag">Step 4 of 5 &bull; Verification</span>
+      <h2>Review & Verify Your Complaint</h2>
+      <p style="font-size: 0.95rem; margin-top: 0.25rem;">
+        Please review all complaint details before final submission. An official ReportLab PDF will be compiled and assigned to the Cyber Crime Investigation Cell.
+      </p>
+    </div>
+
+    <!-- Triage & Metadata Pill -->
+    <div style="background: var(--bg-surface-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <div style="font-size: 0.8rem; color: var(--text-muted);">Crime Classification</div>
+        <div style="font-size: 1.1rem; font-weight: 700; color: var(--primary);">{{ draft.crime_type }}</div>
+      </div>
+      <div>
+        <div style="font-size: 0.8rem; color: var(--text-muted);">Evaluated Risk Priority</div>
+        <div><span class="badge {{ draft.risk_level|risk_badge }}">{{ draft.risk_level }} Priority (Score: {{ draft.risk_score }}/100)</span></div>
+      </div>
+      <div>
+        <div style="font-size: 0.8rem; color: var(--text-muted);">Submission Mode</div>
+        <div style="font-size: 0.9rem; font-weight: 600;">
+          {% if current_user %}
+            {{ current_user.fullname }} ({{ current_user.email }})
+          {% else %}
+            Guest / Anonymous
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Formal Structured Narrative with PII Redaction -->
+    <div style="margin-bottom: 1.75rem;">
+      <div class="flex justify-between items-center" style="margin-bottom: 0.5rem;">
+        <h3 style="font-size: 1.1rem; margin-bottom: 0;">Formal Complaint Narrative (PII-Scrubbed)</h3>
+        <span class="ai-badge" style="margin-bottom: 0;">Verified Draft</span>
+      </div>
+      <div class="redacted-box">{{ redacted_preview }}</div>
+    </div>
+
+    <!-- Specific Questionnaire Answers -->
+    {% if draft.answers %}
+      <div style="margin-bottom: 1.75rem;">
+        <h3 style="font-size: 1.1rem; margin-bottom: 0.75rem;">Investigation Evidentiary Details</h3>
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); overflow: hidden;">
+          {% for key, val in draft.answers.items() %}
+            <div style="display: flex; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-subtle); font-size: 0.9rem; flex-wrap: wrap; gap: 0.5rem;">
+              <div style="font-weight: 600; width: 220px; color: var(--text-main);">{{ key.replace('_', ' ').title() }}:</div>
+              <div style="flex: 1; color: var(--text-muted);">{{ val }}</div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Uploaded Evidence List & AI Forensic Screening -->
+    {% if draft.evidence_meta %}
+      <div style="margin-bottom: 1.75rem;">
+        <h3 style="font-size: 1.1rem; margin-bottom: 0.75rem;">Attached Evidence Files & AI Forensic Screening</h3>
+        <div class="file-preview-list" style="margin-bottom: 1rem;">
+          {% for ev in draft.evidence_meta %}
+            <div class="file-preview-item">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <span class="badge badge-medium">{{ ev.category }}</span>
+                <strong>{{ ev.original_name }}</strong>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">({{ ev.size }})</span>
+              </div>
+              <span style="font-size: 0.8rem; color: var(--accent-green);">Forensically Screened</span>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- AI Image Authenticity Screening Cards -->
+        {% for ev in draft.evidence_meta %}
+          {% if ev.forensics %}
+            <div class="card" style="background: var(--bg-surface-subtle); border: 1px solid var(--border-subtle); margin-top: 1rem; padding: 1.25rem;">
+              <div class="flex justify-between items-center flex-wrap gap-2" style="margin-bottom: 0.85rem;">
+                <div class="flex items-center gap-2">
+                  <span class="ai-badge" style="margin-bottom: 0;">AI Forensic Screening</span>
+                  <h4 style="margin: 0; font-size: 1rem;">🔍 Authenticity Signal: {{ ev.original_name }}</h4>
+                </div>
+                <span class="badge {{ ev.forensics.signal_class }}">{{ ev.forensics.overall_signal }}</span>
+              </div>
+
+              <!-- Checks Summary -->
+              <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; font-size: 0.88rem;">
+                {% for check in ev.forensics.checks %}
+                  <div style="background: var(--bg-surface); padding: 0.65rem 0.85rem; border-radius: var(--radius-sm); border-left: 3px solid {% if check.status == 'pass' %}var(--accent-green){% elif check.status == 'warning' %}var(--accent-red){% else %}var(--primary){% endif %};">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <strong>{{ check.name }}</strong>
+                      <span class="badge {% if check.status == 'pass' %}badge-success{% elif check.status == 'warning' %}badge-critical{% else %}badge-medium{% endif %}" style="font-size: 0.72rem;">{{ check.result }}</span>
+                    </div>
+                    <div style="color: var(--text-muted); font-size: 0.82rem; margin-top: 0.2rem;">{{ check.note }}</div>
+                  </div>
+                {% endfor %}
+              </div>
+
+              <!-- ELA Heatmap Display -->
+              {% if ev.forensics.ela_heatmap_url %}
+                <div style="margin-bottom: 1rem;">
+                  <div style="font-size: 0.82rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.35rem;">
+                    Error Level Analysis (ELA) Compression Heatmap:
+                  </div>
+                  <div style="display: flex; gap: 1rem; align-items: center; background: var(--bg-surface); padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                    <img src="{{ ev.forensics.ela_heatmap_url }}" alt="ELA Heatmap" style="max-height: 140px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); object-fit: contain;">
+                    <div style="font-size: 0.8rem; color: var(--text-muted); flex: 1;">
+                      The ELA heatmap highlights JPEG compression error levels. Untouched regions remain dark and uniform; bright or inconsistent patches indicate potential localized editing or digital composite splicing.
+                    </div>
+                  </div>
+                </div>
+              {% endif %}
+
+              <!-- Honest Disclaimer -->
+              <div style="font-size: 0.78rem; color: var(--text-muted); font-style: italic; background: var(--bg-surface); padding: 0.6rem 0.85rem; border-radius: var(--radius-sm); border: 1px dashed var(--border-subtle);">
+                <strong>Disclaimer:</strong> {{ ev.forensics.disclaimer }}
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <!-- Submission Form -->
+    <form method="POST" action="{{ url_for('report.report_submit') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      {% if not current_user %}
+        <div class="form-group" style="background: var(--bg-surface-subtle); padding: 1rem; border-radius: var(--radius-md); border: 1px dashed var(--border-focus); margin-bottom: 1.5rem;">
+          <label class="form-label" for="guest_email">Send Complaint PDF & Reference Copy to (Email):</label>
+          <input type="email" name="guest_email" id="guest_email" class="form-control" placeholder="your.email@example.com" required>
+          <div class="form-help">Enter your email to receive the PDF copy and reference number for tracking.</div>
+        </div>
+      {% endif %}
+
+      <div style="background: var(--bg-surface-subtle); padding: 1rem; border-radius: var(--radius-md); font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+        By clicking "Submit Verified Complaint", you confirm that the details provided are accurate to the best of your knowledge. An official complaint reference code (format: <code>CC-2026-NNNNN</code>) will be generated.
+      </div>
+
+      <div class="flex justify-between items-center" style="padding-top: 1.25rem; border-top: 1px solid var(--border-subtle);">
+        <a href="{{ url_for('report.report_step3') }}" class="btn btn-outline">
+          &larr; Back to Step 3
+        </a>
+        <button type="submit" class="btn btn-primary btn-lg" style="box-shadow: var(--shadow-md);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>Submit Verified Complaint (Step 5)</span>
+        </button>
+      </div>
+
+    </form>
+
+  </div>
+</div>
+{% endblock %}

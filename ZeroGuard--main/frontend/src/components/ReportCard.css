@@ -1,0 +1,50 @@
+/* src/components/ReportCard.css */
+.report-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.report-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.report-card-ref {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--brand-primary);
+  font-weight: 600;
+}
+
+.report-card-type {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.report-card-desc {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  flex: 1;
+}
+
+.report-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+.report-card-date {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}

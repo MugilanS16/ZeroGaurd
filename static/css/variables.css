@@ -1,0 +1,172 @@
+/* ZeroGuard AI - Modern Design System Tokens */
+:root {
+  /* Default Dark Mode Palette (Cybersecurity & Government SaaS Aesthetic) */
+  --primary: #3B82F6;
+  --primary-hover: #2563EB;
+  --primary-light: rgba(59, 130, 246, 0.15);
+  --primary-glow: rgba(59, 130, 246, 0.35);
+
+  --secondary: #64748B;
+  --secondary-hover: #475569;
+
+  --accent-green: #22C55E;
+  --accent-green-light: rgba(34, 197, 94, 0.15);
+  
+  --danger: #EF4444;
+  --danger-light: rgba(239, 68, 68, 0.15);
+  
+  --warning: #F59E0B;
+  --warning-light: rgba(245, 158, 11, 0.15);
+  
+  --info: #38BDF8;
+  --info-light: rgba(56, 189, 248, 0.15);
+
+  /* AI Visual Identity */
+  --ai-purple: #818CF8;
+  --ai-purple-light: rgba(129, 140, 248, 0.15);
+  --ai-gradient: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #3B82F6 100%);
+  --ai-glow: 0 0 25px rgba(99, 102, 241, 0.3);
+
+  /* Backgrounds & Surfaces */
+  --bg-body: #0B1120;
+  --bg-surface: #131B2E;
+  --bg-surface-elevated: #1E293B;
+  --bg-surface-subtle: #0F172A;
+  --bg-overlay: rgba(11, 17, 32, 0.85);
+
+  /* Borders & Dividers */
+  --border-subtle: #1E293B;
+  --border-focus: #3B82F6;
+  --border-ai: rgba(99, 102, 241, 0.4);
+
+  /* Typography */
+  --text-main: #F8FAFC;
+  --text-muted: #94A3B8;
+  --text-subtle: #64748B;
+  --text-inverse: #0F172A;
+  --text-brand: #F8FAFC;
+
+  /* Elevation / Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.45);
+  --shadow-xl: 0 20px 35px rgba(0, 0, 0, 0.55);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.35);
+
+  /* Layout & Sizing */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+  --font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --font-heading: 'Outfit', 'Inter', system-ui, sans-serif;
+}
+
+/* Explicit Dark Theme Selector (Matches Root) */
+[data-theme="dark"] {
+  --primary: #3B82F6;
+  --primary-hover: #2563EB;
+  --primary-light: rgba(59, 130, 246, 0.15);
+  --primary-glow: rgba(59, 130, 246, 0.35);
+
+  --secondary: #64748B;
+  --secondary-hover: #475569;
+
+  --accent-green: #22C55E;
+  --accent-green-light: rgba(34, 197, 94, 0.15);
+
+  --danger: #EF4444;
+  --danger-light: rgba(239, 68, 68, 0.15);
+
+  --warning: #F59E0B;
+  --warning-light: rgba(245, 158, 11, 0.15);
+
+  --info: #38BDF8;
+  --info-light: rgba(56, 189, 248, 0.15);
+
+  --ai-purple: #818CF8;
+  --ai-purple-light: rgba(129, 140, 248, 0.15);
+  --ai-gradient: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #3B82F6 100%);
+  --ai-glow: 0 0 25px rgba(99, 102, 241, 0.3);
+
+  --bg-body: #0B1120;
+  --bg-surface: #131B2E;
+  --bg-surface-elevated: #1E293B;
+  --bg-surface-subtle: #0F172A;
+  --bg-overlay: rgba(11, 17, 32, 0.85);
+
+  --border-subtle: #1E293B;
+  --border-focus: #3B82F6;
+  --border-ai: rgba(99, 102, 241, 0.4);
+
+  --text-main: #F8FAFC;
+  --text-muted: #94A3B8;
+  --text-subtle: #64748B;
+  --text-inverse: #0F172A;
+  --text-brand: #F8FAFC;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.45);
+  --shadow-xl: 0 20px 35px rgba(0, 0, 0, 0.55);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* Light Theme Overrides */
+[data-theme="light"] {
+  --primary: #2563EB;
+  --primary-hover: #1D4ED8;
+  --primary-light: rgba(37, 99, 235, 0.08);
+  --primary-glow: rgba(37, 99, 235, 0.2);
+
+  --secondary: #475569;
+  --secondary-hover: #334155;
+
+  --accent-green: #16A34A;
+  --accent-green-light: rgba(22, 163, 74, 0.1);
+
+  --danger: #DC2626;
+  --danger-light: rgba(220, 38, 38, 0.1);
+
+  --warning: #D97706;
+  --warning-light: rgba(217, 119, 6, 0.1);
+
+  --info: #0284C7;
+  --info-light: rgba(2, 132, 199, 0.1);
+
+  --ai-purple: #4F46E5;
+  --ai-purple-light: rgba(79, 70, 229, 0.08);
+  --ai-gradient: linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #2563EB 100%);
+  --ai-glow: 0 0 20px rgba(79, 70, 229, 0.18);
+
+  --bg-body: #F8FAFC;
+  --bg-surface: #FFFFFF;
+  --bg-surface-elevated: #F1F5F9;
+  --bg-surface-subtle: #F8FAFC;
+  --bg-overlay: rgba(15, 23, 42, 0.6);
+
+  --border-subtle: #E2E8F0;
+  --border-focus: #2563EB;
+  --border-ai: rgba(79, 70, 229, 0.3);
+
+  --text-main: #0F172A;
+  --text-muted: #64748B;
+  --text-subtle: #94A3B8;
+  --text-inverse: #FFFFFF;
+  --text-brand: #0F172A;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  --shadow-card: 0 4px 20px rgba(15, 23, 42, 0.06);
+}

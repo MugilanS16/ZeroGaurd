@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Citizen Registration - ZeroGuard AI{% endblock %}
+
+{% block content %}
+<div class="container container-narrow animate-fade-in">
+  <div class="card card-elevated" style="max-width: 520px; margin: 2rem auto;">
+    
+    <div style="text-align: center; margin-bottom: 2rem;">
+      <div class="brand-icon" style="margin: 0 auto 1rem; width: 48px; height: 48px;">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="8.5" cy="7" r="4"></circle>
+          <line x1="20" y1="8" x2="20" y2="14"></line>
+          <line x1="23" y1="11" x2="17" y2="11"></line>
+        </svg>
+      </div>
+      <h2>Create Citizen Account</h2>
+      <p style="font-size: 0.9rem; margin-top: 0.25rem;">Register to file official cybercrime complaints, receive automated investigation updates, and securely track cases.</p>
+    </div>
+
+    <!-- Security & Privacy Banner -->
+    <div style="background: var(--accent-green-light); border: 1px solid var(--accent-green); border-radius: var(--radius-md); padding: 0.85rem; margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--accent-green); display: flex; align-items: flex-start; gap: 0.5rem;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+      <div>
+        <strong>End-to-End Privacy:</strong> We adhere to the Digital Personal Data Protection Act. Your personal details are strictly used for verified complaint filing.
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth.register') }}">
+      {{ form.hidden_tag() }}
+
+      <div class="form-group">
+        <label class="form-label" for="fullname">Full Name (as per Official ID)</label>
+        {{ form.fullname(class="form-control" + (" is-invalid" if form.fullname.errors else ""), id="fullname", placeholder="e.g. Rahul Sharma", autofocus=True) }}
+        {% for error in form.fullname.errors %}
+          <div class="form-error">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="grid grid-2 gap-3">
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address</label>
+          {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), id="email", placeholder="name@example.com") }}
+          {% for error in form.email.errors %}
+            <div class="form-error">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="phone">Mobile Phone</label>
+          {{ form.phone(class="form-control" + (" is-invalid" if form.phone.errors else ""), id="phone", placeholder="+91 98765 43210") }}
+          {% for error in form.phone.errors %}
+            <div class="form-error">{{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="grid grid-2 gap-3">
+        <div class="form-group">
+          <label class="form-label" for="password">Create Password</label>
+          {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), id="password", placeholder="Min. 6 characters") }}
+          {% for error in form.password.errors %}
+            <div class="form-error">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="confirm_password">Confirm Password</label>
+          {{ form.confirm_password(class="form-control" + (" is-invalid" if form.confirm_password.errors else ""), id="confirm_password", placeholder="Repeat password") }}
+          {% for error in form.confirm_password.errors %}
+            <div class="form-error">{{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Emergency Trusted Contact Section (Required) -->
+      <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1.5px dashed var(--border-subtle);">
+        <h3 style="font-size: 1.05rem; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.5rem; color: var(--text-main);">
+          <span>🛡️</span> Emergency Trusted Contact <span style="font-size: 0.8rem; color: var(--danger); font-weight: 600;">(Required)</span>
+        </h3>
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4;">
+          Your trusted contact must be someone close to you — a parent, guardian, family member, or close friend — who can be reached on your behalf in an emergency.
+        </p>
+
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label class="form-label" for="trusted_contact_name">Contact Full Name</label>
+          {{ form.trusted_contact_name(class="form-control" + (" is-invalid" if form.trusted_contact_name.errors else ""), id="trusted_contact_name", placeholder="e.g. Ramesh Verma") }}
+          {% for error in form.trusted_contact_name.errors %}
+            <div class="form-error">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label class="form-label" for="trusted_contact_relationship">Relationship</label>
+          {{ form.trusted_contact_relationship(class="form-control" + (" is-invalid" if form.trusted_contact_relationship.errors else ""), id="trusted_contact_relationship") }}
+          {% for error in form.trusted_contact_relationship.errors %}
+            <div class="form-error">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="grid grid-2 gap-3">
+          <div class="form-group" style="margin-bottom: 0.85rem;">
+            <label class="form-label" for="trusted_contact_email">Contact Email Address</label>
+            {{ form.trusted_contact_email(class="form-control" + (" is-invalid" if form.trusted_contact_email.errors else ""), id="trusted_contact_email", placeholder="contact@example.com") }}
+            {% for error in form.trusted_contact_email.errors %}
+              <div class="form-error">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0.85rem;">
+            <label class="form-label" for="trusted_contact_phone">Contact Mobile Phone</label>
+            {{ form.trusted_contact_phone(class="form-control" + (" is-invalid" if form.trusted_contact_phone.errors else ""), id="trusted_contact_phone", placeholder="+91 98765 43210") }}
+            {% for error in form.trusted_contact_phone.errors %}
+              <div class="form-error">{{ error }}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top: 1rem;">
+
+        <label style="display: flex; align-items: flex-start; gap: 0.6rem; font-size: 0.85rem; cursor: pointer;">
+          {{ form.terms(style="margin-top: 3px;") }}
+          <span>I confirm the truthfulness of submitted incident details and accept ZeroGuard AI data protection and verification policies.</span>
+        </label>
+        {% for error in form.terms.errors %}
+          <div class="form-error">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      {{ form.submit(class="btn btn-primary btn-block btn-lg", style="margin-top: 1rem;") }}
+    </form>
+
+    <div style="display: flex; align-items: center; margin: 1.75rem 0; color: var(--text-subtle); font-size: 0.85rem;">
+      <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
+      <span style="padding: 0 0.75rem;">OR QUICK REGISTER</span>
+      <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <a href="{{ url_for('auth.sso_google') }}" class="btn btn-outline btn-block" style="display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
+        <svg width="18" height="18" viewBox="0 0 24 24">
+          <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 8.9 5 12 5z"/>
+          <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/>
+          <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12 0 14.5s.7 4.8 1.9 7.2l3.7-2.9z"/>
+          <path fill="#34A853" d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3.1 0-5.5-2.4-6.4-5.2L1.9 16.5C3.7 20.2 7.5 23.5 12 23.5z"/>
+        </svg>
+        <span>Instant Signup with Google</span>
+      </a>
+      <a href="{{ url_for('auth.sso_digilocker') }}" class="btn btn-outline btn-block" style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; border-color: #0059B2; color: #0059B2;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="16" rx="2"/>
+          <circle cx="8" cy="10" r="2"/>
+          <path d="M14 10h4"/>
+          <path d="M14 14h4"/>
+          <path d="M6 16c0-1.5 1.5-2 3-2s3 .5 3 2"/>
+        </svg>
+        <span>Instant Verified Signup with DigiLocker</span>
+      </a>
+    </div>
+
+    <div style="text-align: center; margin-top: 1.75rem; font-size: 0.9rem;">
+      Already registered? <a href="{{ url_for('auth.login') }}" style="font-weight: 600;">Sign in to your account &rarr;</a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

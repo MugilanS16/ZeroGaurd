@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Emergency Cybercrime Helplines - ZeroGuard AI{% endblock %}
+
+{% block content %}
+<div class="container animate-fade-in">
+  
+  <div style="text-align: center; max-width: 800px; margin: 0 auto 3rem;">
+    <div class="badge badge-critical" style="font-size: 0.82rem; margin-bottom: 1rem;">
+      🚨 24x7 EMERGENCY RESPONSE DIRECTORY
+    </div>
+    <h1 style="font-size: 2.3rem;">Official Cybercrime & Emergency Helplines</h1>
+    <p style="font-size: 1.05rem; color: var(--text-muted); margin-top: 0.5rem;">
+      Direct dial numbers, golden hour intervention hotlines, and government nodal cyber units across India.
+    </p>
+  </div>
+
+  <!-- Primary Emergency Helplines Grid -->
+  <div class="grid grid-2 gap-6" style="margin-bottom: 3.5rem;">
+    {% for phone in emergency_helplines %}
+      <div class="card card-elevated" style="border-left: 6px solid {{ phone.color }};">
+        <div class="flex justify-between items-start" style="margin-bottom: 0.75rem;">
+          <span class="badge {{ phone.badge_class }}" style="font-size: 0.85rem;">{{ phone.badge }}</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">24x7 Direct Helpline</span>
+        </div>
+        <h2 style="font-size: 2.5rem; font-family: var(--font-heading); color: {{ phone.color }}; margin: 0.25rem 0;">
+          <a href="tel:{{ phone.number }}" style="color: inherit; text-decoration: none;">{{ phone.number }}</a>
+        </h2>
+        <h3 style="font-size: 1.15rem; margin-bottom: 0.5rem;">{{ phone.title }}</h3>
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+          {{ phone.description }}
+        </p>
+        <a href="tel:{{ phone.number }}" class="btn {{ phone.btn_class }} btn-block btn-lg" style="{% if 'btn-outline' in phone.btn_class %}border-color: {{ phone.color }}; color: {{ phone.color }};{% endif %}">
+          📞 Dial {{ phone.number }} Now
+        </a>
+      </div>
+    {% endfor %}
+  </div>
+
+
+  <!-- Official Portals & Tools -->
+  <div class="card" style="padding: 2rem; margin-bottom: 3rem;">
+    <h3 style="font-size: 1.3rem; margin-bottom: 1.25rem;">Official Portals & Digital Forensics Tools</h3>
+    
+    <div class="grid grid-3 gap-4" style="font-size: 0.9rem;">
+      <div style="background: var(--bg-surface-subtle); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+        <strong style="color: var(--primary);">cybercrime.gov.in</strong>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.5rem 0;">National Cyber Crime Reporting Portal under Ministry of Home Affairs.</p>
+        <a href="https://cybercrime.gov.in" target="_blank" rel="noopener" style="font-weight: 600;">Visit Portal &rarr;</a>
+      </div>
+
+      <div style="background: var(--bg-surface-subtle); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+        <strong style="color: var(--primary);">StopNCII.org</strong>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.5rem 0;">Cryptographic hashing tool to prevent sharing of intimate photos on social platforms.</p>
+        <a href="https://stopncii.org" target="_blank" rel="noopener" style="font-weight: 600;">Open StopNCII &rarr;</a>
+      </div>
+
+      <div style="background: var(--bg-surface-subtle); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+        <strong style="color: var(--primary);">cert-in.org.in</strong>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.5rem 0;">Indian Computer Emergency Response Team for malware analysis and phishing domain take-down.</p>
+        <a href="https://cert-in.org.in" target="_blank" rel="noopener" style="font-weight: 600;">Report to CERT-In &rarr;</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In - ZeroGuard AI{% endblock %}
+
+{% block content %}
+<div class="container container-narrow animate-fade-in">
+  <div class="card card-elevated" style="max-width: 480px; margin: 2rem auto;">
+    
+    <div style="text-align: center; margin-bottom: 2rem;">
+      <div class="brand-icon" style="margin: 0 auto 1rem; width: 48px; height: 48px;">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="M9 12l2 2 4-4"/>
+        </svg>
+      </div>
+      <h2>Welcome Back</h2>
+      <p style="font-size: 0.9rem; margin-top: 0.25rem;">Sign in to file complaints, track investigation status, and access AI support.</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth.login', next=request.args.get('next', '')) }}">
+      {{ form.hidden_tag() }}
+
+      <div class="form-group">
+        <label class="form-label" for="email">Email Address</label>
+        {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), id="email", placeholder="name@example.com", autofocus=True) }}
+        {% for error in form.email.errors %}
+          <div class="form-error">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="form-group">
+        <div class="flex justify-between items-center" style="margin-bottom: 0.4rem;">
+          <label class="form-label" for="password" style="margin-bottom: 0;">Password</label>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Protected via Werkzeug</span>
+        </div>
+        {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), id="password", placeholder="Enter your password") }}
+        {% for error in form.password.errors %}
+          <div class="form-error">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="flex justify-between items-center" style="margin-bottom: 1.5rem;">
+        <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; cursor: pointer;">
+          {{ form.remember() }}
+          <span>Remember this browser</span>
+        </label>
+      </div>
+
+      {{ form.submit(class="btn btn-primary btn-block btn-lg") }}
+    </form>
+
+    <div style="display: flex; align-items: center; margin: 1.75rem 0; color: var(--text-subtle); font-size: 0.85rem;">
+      <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
+      <span style="padding: 0 0.75rem;">OR SECURE SSO</span>
+      <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
+    </div>
+
+    <!-- Simulated SSO Providers -->
+    <div class="flex flex-col gap-2">
+      <a href="{{ url_for('auth.sso_google') }}" class="btn btn-outline btn-block" style="display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
+        <svg width="18" height="18" viewBox="0 0 24 24">
+          <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 8.9 5 12 5z"/>
+          <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/>
+          <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12 0 14.5s.7 4.8 1.9 7.2l3.7-2.9z"/>
+          <path fill="#34A853" d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3.1 0-5.5-2.4-6.4-5.2L1.9 16.5C3.7 20.2 7.5 23.5 12 23.5z"/>
+        </svg>
+        <span>Continue with Google Account</span>
+      </a>
+
+      <a href="{{ url_for('auth.sso_digilocker') }}" class="btn btn-outline btn-block" style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; border-color: #0059B2; color: #0059B2;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="16" rx="2"/>
+          <circle cx="8" cy="10" r="2"/>
+          <path d="M14 10h4"/>
+          <path d="M14 14h4"/>
+          <path d="M6 16c0-1.5 1.5-2 3-2s3 .5 3 2"/>
+        </svg>
+        <span>Sign in with DigiLocker (Aadhaar e-KYC)</span>
+      </a>
+    </div>
+
+    <div style="text-align: center; margin-top: 1.75rem; font-size: 0.9rem;">
+      Don't have an account yet? <a href="{{ url_for('auth.register') }}" style="font-weight: 600;">Create citizen account &rarr;</a>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

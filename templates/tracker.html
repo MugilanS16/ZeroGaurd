@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Track Complaint Status - ZeroGuard AI{% endblock %}
+
+{% block content %}
+<div class="container container-narrow animate-fade-in">
+  
+  <div style="text-align: center; margin-bottom: 2rem;">
+    <div class="brand-icon" style="margin: 0 auto 1rem; width: 48px; height: 48px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+    </div>
+    <h2>Public Complaint Status Tracker</h2>
+    <p style="font-size: 0.95rem; margin-top: 0.25rem;">
+      Check the real-time investigation status of your cybercrime incident without logging in.
+    </p>
+  </div>
+
+  <!-- Search Card -->
+  <div class="card card-elevated" style="margin-bottom: 2.5rem;">
+    <form method="POST" action="{{ url_for('tracker.track') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="form-group">
+        <label class="form-label" for="ref">Complaint Reference Number</label>
+        <input 
+          type="text" 
+          name="ref" 
+          id="ref" 
+          class="form-control" 
+          placeholder="e.g. CC-2026-XXXXX" 
+          value="{{ ref_number }}"
+          style="font-family: monospace; font-weight: 700; font-size: 1.05rem;"
+          required
+          autofocus
+        >
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="email">Registered Email Address (Optional for verification)</label>
+        <input 
+          type="email" 
+          name="email" 
+          id="email" 
+          class="form-control" 
+          placeholder="name@example.com" 
+          value="{{ email }}"
+        >
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block btn-lg">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <span>Track Investigation Status</span>
+      </button>
+    </form>
+  </div>
+
+  <!-- Complaint Results Card -->
+  {% if complaint %}
+    <div class="card card-elevated animate-fade-in" style="border-top: 4px solid var(--primary);">
+      
+      <div class="flex justify-between items-center flex-wrap gap-2" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-subtle);">
+        <div>
+          <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Case Dossier</span>
+          <h3 style="font-size: 1.5rem; font-family: monospace; color: var(--primary); margin: 0.2rem 0;">{{ complaint.reference_number }}</h3>
+        </div>
+        <div class="flex gap-2">
+          <span class="badge {{ complaint.risk_level|risk_badge }}">{{ complaint.risk_level }} Priority</span>
+          <span class="badge {{ complaint.status|status_badge }}">{{ complaint.status }}</span>
+        </div>
+      </div>
+
+      <!-- 3-Stage Investigation Stepper -->
+      <div style="margin: 2rem 0;">
+        <h4 style="font-size: 1rem; margin-bottom: 1.25rem;">Investigation Progress Stepper</h4>
+
+        <div class="grid grid-3 gap-3" style="text-align: center;">
+          
+          <!-- Step 1 -->
+          <div style="background: {% if step_index >= 1 %}var(--accent-green-light){% else %}var(--bg-surface-subtle){% endif %}; border: 1px solid {% if step_index >= 1 %}var(--accent-green){% else %}var(--border-subtle){% endif %}; border-radius: var(--radius-md); padding: 1rem;">
+            <div style="font-size: 1.25rem; margin-bottom: 0.25rem;">📝</div>
+            <strong style="font-size: 0.9rem; color: {% if step_index >= 1 %}var(--accent-green){% else %}var(--text-muted){% endif %};">1. Submitted</strong>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem;">Dossier Logged</div>
+          </div>
+
+          <!-- Step 2 -->
+          <div style="background: {% if step_index >= 2 %}var(--warning-light){% else %}var(--bg-surface-subtle){% endif %}; border: 1px solid {% if step_index >= 2 %}var(--warning){% else %}var(--border-subtle){% endif %}; border-radius: var(--radius-md); padding: 1rem;">
+            <div style="font-size: 1.25rem; margin-bottom: 0.25rem;">🔍</div>
+            <strong style="font-size: 0.9rem; color: {% if step_index >= 2 %}var(--warning){% else %}var(--text-muted){% endif %};">2. In Review</strong>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem;">Cyber-Cell Assigned</div>
+          </div>
+
+          <!-- Step 3 -->
+          <div style="background: {% if step_index >= 3 %}var(--accent-green-light){% else %}var(--bg-surface-subtle){% endif %}; border: 1px solid {% if step_index >= 3 %}var(--accent-green){% else %}var(--border-subtle){% endif %}; border-radius: var(--radius-md); padding: 1rem;">
+            <div style="font-size: 1.25rem; margin-bottom: 0.25rem;">✅</div>
+            <strong style="font-size: 0.9rem; color: {% if step_index >= 3 %}var(--accent-green){% else %}var(--text-muted){% endif %};">3. Resolved</strong>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem;">Action Completed</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Case Details Grid -->
+      <div class="grid grid-2 gap-4" style="background: var(--bg-surface-subtle); padding: 1.25rem; border-radius: var(--radius-md); font-size: 0.9rem; margin-bottom: 1.5rem;">
+        <div>
+          <div style="color: var(--text-muted); font-size: 0.8rem;">Offense Category</div>
+          <div style="font-weight: 600;">{{ complaint.crime_type }}</div>
+        </div>
+        <div>
+          <div style="color: var(--text-muted); font-size: 0.8rem;">Date Reported</div>
+          <div style="font-weight: 600;">{{ complaint.created_at|datetime }}</div>
+        </div>
+        <div>
+          <div style="color: var(--text-muted); font-size: 0.8rem;">Current Status</div>
+          <div><span class="badge {{ complaint.status|status_badge }}">{{ complaint.status }}</span></div>
+        </div>
+        <div>
+          <div style="color: var(--text-muted); font-size: 0.8rem;">Last Updated</div>
+          <div style="font-weight: 600;">{{ complaint.updated_at|datetime }}</div>
+        </div>
+      </div>
+
+      <!-- Latest Cyber-Cell Official Note -->
+      {% if latest_note %}
+        <div style="background: var(--primary-light); border-left: 4px solid var(--primary); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem;">
+          <div style="font-size: 0.82rem; font-weight: 700; color: var(--primary); margin-bottom: 0.35rem;">
+            👮 Latest Official Cyber-Cell Update ({{ latest_note.created_at|datetime('%d %b %Y') }}):
+          </div>
+          <p style="font-size: 0.9rem; margin: 0; color: var(--text-main);">
+            "{{ latest_note.note }}"
+          </p>
+        </div>
+      {% endif %}
+
+      <!-- Download Button -->
+      <div class="flex justify-between items-center flex-wrap gap-2" style="padding-top: 1rem; border-top: 1px solid var(--border-subtle);">
+        <a href="{{ url_for('report.download_pdf', reference_number=complaint.reference_number) }}" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Download Verified PDF Complaint</span>
+        </a>
+
+        <a href="{{ url_for('chatbot.chatbot_page') }}" class="btn btn-outline btn-sm">
+          Ask AI Assistant &rarr;
+        </a>
+      </div>
+
+    </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}

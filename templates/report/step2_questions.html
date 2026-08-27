@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Step 2: Specific Follow-Up Questions - ZeroGuard AI{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/wizard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container wizard-container animate-fade-in">
+
+  <!-- Step Progress Bar -->
+  <div class="wizard-progress">
+    <div class="wizard-step completed">
+      <div class="wizard-step-circle">&#10003;</div>
+      <div class="wizard-step-label">Incident</div>
+    </div>
+    <div class="wizard-step active">
+      <div class="wizard-step-circle">2</div>
+      <div class="wizard-step-label">Questions</div>
+    </div>
+    <div class="wizard-step">
+      <div class="wizard-step-circle">3</div>
+      <div class="wizard-step-label">Guidance</div>
+    </div>
+    <div class="wizard-step">
+      <div class="wizard-step-circle">4</div>
+      <div class="wizard-step-label">Preview</div>
+    </div>
+    <div class="wizard-step">
+      <div class="wizard-step-circle">5</div>
+      <div class="wizard-step-label">Submit</div>
+    </div>
+  </div>
+
+  <div class="wizard-card">
+    
+    <div class="wizard-header">
+      <span class="wizard-step-tag">Step 2 of 5 &bull; Evidence Gathering</span>
+      <h2>Critical Investigation Questions</h2>
+      <p style="font-size: 0.95rem; margin-top: 0.25rem;">
+        Based on your classified crime category — <strong style="color: var(--primary);">{{ draft.crime_type }}</strong> — our AI has generated tailored questions to collect necessary evidence for police investigation.
+      </p>
+    </div>
+
+    <!-- AI Classification Banner -->
+    <div class="ai-card" style="margin-bottom: 2rem; padding: 1rem 1.25rem;">
+      <div class="flex justify-between items-center flex-wrap gap-2">
+        <div class="flex items-center gap-2">
+          <span class="ai-badge" style="margin-bottom: 0;">Classified Category</span>
+          <strong style="font-size: 1rem;">{{ draft.crime_type }}</strong>
+        </div>
+        <span class="badge {{ draft.risk_level|risk_badge }}">{{ draft.risk_level }} Risk Priority</span>
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('report.report_step2') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      {% for q in questions %}
+        <div class="form-group">
+          <label class="form-label" for="{{ q.id }}">
+            {{ loop.index }}. {{ q.question }}
+            {% if q.required %}<span style="color: var(--danger);">*</span>{% endif %}
+          </label>
+          <input 
+            type="{{ q.field_type if q.field_type in ['text', 'number', 'date'] else 'text' }}" 
+            name="{{ q.id }}" 
+            id="{{ q.id }}" 
+            class="form-control" 
+            placeholder="{{ q.placeholder }}"
+            value="{{ draft.answers.get(q.id, '') }}"
+            {% if q.required %}required{% endif %}
+          >
+        </div>
+      {% endfor %}
+
+      <div class="flex justify-between items-center" style="margin-top: 2.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border-subtle);">
+        <a href="{{ url_for('report.report_step1') }}" class="btn btn-outline">
+          &larr; Back to Step 1
+        </a>
+        <button type="submit" class="btn btn-primary btn-lg">
+          <span>Continue to Guidance & Evidence (Step 3) &rarr;</span>
+        </button>
+      </div>
+
+    </form>
+
+  </div>
+</div>
+{% endblock %}

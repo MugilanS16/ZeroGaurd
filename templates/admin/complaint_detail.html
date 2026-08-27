@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}Investigate Complaint {{ complaint.reference_number }} - Cyber-Cell Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container animate-fade-in">
+  
+  <!-- Top Navigation & Title -->
+  <div style="margin-bottom: 1.5rem;">
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline btn-sm" style="margin-bottom: 1rem;">
+      &larr; Back to Incident Queue
+    </a>
+
+    <div class="flex justify-between items-center flex-wrap gap-3">
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 style="font-size: 1.85rem; font-family: monospace; margin: 0;">{{ complaint.reference_number }}</h1>
+          <span class="badge {{ complaint.risk_level|risk_badge }}">{{ complaint.risk_level }} Risk Priority ({{ complaint.risk_score }}/100)</span>
+          <span class="badge {{ complaint.status|status_badge }}">{{ complaint.status }}</span>
+          {% if complaint.amount_verification_status == 'Verified' %}
+            <span class="badge badge-success">✅ Amount Verified</span>
+          {% elif complaint.amount_verification_status == 'Manual Review Needed' %}
+            <span class="badge badge-warning">⚠️ Manual Review Needed</span>
+          {% elif complaint.amount_verification_status == 'Mismatch' %}
+            <span class="badge badge-critical">❌ Amount Mismatch</span>
+          {% endif %}
+        </div>
+        <p style="font-size: 0.9rem; margin-top: 0.25rem; color: var(--text-muted);">
+          Offense: <strong>{{ complaint.crime_type }}</strong> &bull; Logged: {{ complaint.created_at|datetime('%d %b %Y, %I:%M %p') }}
+        </p>
+      </div>
+
+      <div class="flex gap-2">
+        <a href="{{ url_for('report.download_pdf', reference_number=complaint.reference_number) }}" class="btn btn-primary btn-sm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Download Formal PDF Complaint</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-3 gap-6">
+    
+    <!-- Left Column (Span 2): Dossier & Evidence -->
+    <div style="grid-column: span 2; display: flex; flex-direction: column; gap: 1.5rem;">
+      
+      <!-- Complainant Card -->
+      <div class="card">
+        <h3 style="font-size: 1.15rem; margin-bottom: 0.75rem;">1. Complainant Profile</h3>
+        <div class="grid grid-3 gap-3" style="font-size: 0.9rem;">
+          <div>
+            <div style="color: var(--text-muted); font-size: 0.8rem;">Full Name</div>
+            <div style="font-weight: 600;">{{ complaint.user.fullname if complaint.user else 'Anonymous Citizen' }}</div>
+          </div>
+          <div>
+            <div style="color: var(--text-muted); font-size: 0.8rem;">Email Address</div>
+            <div style="font-weight: 600;">{{ complaint.user.email if complaint.user else 'Not Provided' }}</div>
+          </div>
+          <div>
+            <div style="color: var(--text-muted); font-size: 0.8rem;">Mobile Phone</div>
+            <div style="font-weight: 600;">{{ complaint.user.phone if complaint.user else 'Not Provided' }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formal Narrative & Original Statement -->
+      <div class="card">
+        <h3 style="font-size: 1.15rem; margin-bottom: 0.75rem;">2. Formal Incident Narrative (FIR Dossier)</h3>
+        <div style="background: var(--bg-surface-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap;">
+{{ complaint.description }}
+        </div>
+
+        {% if complaint.original_description and complaint.original_description != complaint.description %}
+          <div style="margin-top: 1rem;">
+            <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.35rem;">
+              Original Citizen Raw Statement:
+            </div>
+            <div style="font-size: 0.88rem; color: var(--text-muted); background: var(--bg-surface); border: 1px dashed var(--border-subtle); padding: 0.75rem; border-radius: var(--radius-sm); font-style: italic;">
+              "{{ complaint.original_description }}"
+            </div>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Evidentiary Q&A Table -->
+      {% if complaint.answers %}
+        <div class="card">
+          <h3 style="font-size: 1.15rem; margin-bottom: 0.75rem;">3. Evidentiary & Financial Details</h3>
+          <div style="border: 1px solid var(--border-subtle); border-radius: var(--radius-md); overflow: hidden;">
+            {% for key, val in complaint.answers.items() %}
+              <div style="display: flex; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-subtle); font-size: 0.9rem; flex-wrap: wrap; gap: 0.5rem;">
+                <div style="font-weight: 600; width: 220px; color: var(--text-main);">{{ key.replace('_', ' ').title() }}:</div>
+                <div style="flex: 1; color: var(--text-muted); font-family: monospace;">{{ val }}</div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Attached Evidence Metadata & Forensic Analysis -->
+      {% if complaint.evidence_meta %}
+        <div class="card">
+          <h3 style="font-size: 1.15rem; margin-bottom: 0.75rem;">4. Attached Digital Evidence Records & Forensic Screening</h3>
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            {% for ev in complaint.evidence_meta %}
+              <div style="background: var(--bg-surface-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1rem; font-size: 0.9rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+                  <div class="flex items-center gap-2">
+                    <span class="badge badge-medium">{{ ev.category }}</span>
+                    <strong>{{ ev.original_name }}</strong>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">({{ ev.size }})</span>
+                  </div>
+                  {% if ev.forensics %}
+                    <span class="badge {{ ev.forensics.signal_class }}">{{ ev.forensics.overall_signal }}</span>
+                  {% else %}
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">Standard Document File</span>
+                  {% endif %}
+                </div>
+
+                {% if ev.forensics %}
+                  <!-- Detailed Forensic Report -->
+                  <div style="margin-top: 0.75rem; border-top: 1px solid var(--border-subtle); padding-top: 0.75rem;">
+                    <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem;">
+                      Automated Forensic Screening Checks:
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem;">
+                      {% for check in ev.forensics.checks %}
+                        <div style="background: var(--bg-surface); padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); border-left: 3px solid {% if check.status == 'pass' %}var(--accent-green){% elif check.status == 'warning' %}var(--accent-red){% else %}var(--primary){% endif %}; font-size: 0.85rem;">
+                          <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <strong>{{ check.name }}</strong>
+                            <span class="badge {% if check.status == 'pass' %}badge-success{% elif check.status == 'warning' %}badge-critical{% else %}badge-medium{% endif %}" style="font-size: 0.7rem;">{{ check.result }}</span>
+                          </div>
+                          <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.15rem;">{{ check.note }}</div>
+                        </div>
+                      {% endfor %}
+                    </div>
+
+                    {% if ev.forensics.ela_heatmap_url %}
+                      <div style="margin-bottom: 0.75rem; background: var(--bg-surface); padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                        <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.35rem;">
+                          Error Level Analysis (ELA) Compression Heatmap:
+                        </div>
+                        <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                          <img src="{{ ev.forensics.ela_heatmap_url }}" alt="ELA Heatmap" style="max-height: 150px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); object-fit: contain;">
+                          <div style="font-size: 0.8rem; color: var(--text-muted); flex: 1; min-width: 200px;">
+                            <strong>Investigator Note:</strong> Bright or uneven patches in the ELA heatmap highlight localized compression disparities consistent with photo retouching, text replacement, or composite splicing.
+                          </div>
+                        </div>
+                      </div>
+                    {% endif %}
+
+                    <div style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">
+                      <strong>Disclaimer:</strong> {{ ev.forensics.disclaimer }}
+                    </div>
+                  </div>
+                {% endif %}
+
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+    </div>
+
+    <!-- Right Column: Case Actions & Audit Notes Timeline -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+      
+      <!-- Action Panel Form -->
+      <div class="card" style="border-top: 4px solid var(--primary);">
+        <h3 style="font-size: 1.15rem; margin-bottom: 1rem;">Cyber-Cell Case Action</h3>
+        
+        <form method="POST" action="{{ url_for('admin.update_complaint_status', complaint_id=complaint.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="form-group">
+            <label class="form-label" for="status">Update Case Status</label>
+            <select name="status" id="status" class="form-control" style="font-weight: 600;">
+              <option value="Pending" {% if complaint.status == 'Pending' %}selected{% endif %}>Pending</option>
+              <option value="In Review" {% if complaint.status in ['In Review', 'In_Review'] %}selected{% endif %}>In Review (Assigned / Nodal Lien Active)</option>
+              <option value="Resolved" {% if complaint.status == 'Resolved' %}selected{% endif %}>Resolved (Action Taken / Closed)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="note">Officer Case Note / Investigation Log</label>
+            <textarea 
+              name="note" 
+              id="note" 
+              class="form-control" 
+              rows="4" 
+              placeholder="e.g. Beneficiary account flagged with Nodal Bank officer for freezing. SI Verma assigned for field inquiry..."
+              required
+            ></textarea>
+            <div class="form-help">This note will be recorded in the permanent audit trail.</div>
+          </div>
+
+          <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; cursor: pointer;">
+              <input type="checkbox" name="notify_citizen" value="true" checked>
+              <span>Dispatch email notification to complainant with update.</span>
+            </label>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">
+            Commit Action & Update Status
+          </button>
+        </form>
+      </div>
+
+      <!-- Historical Investigation Notes & Audit Trail -->
+      <div class="card">
+        <h3 style="font-size: 1.15rem; margin-bottom: 0.75rem;">Investigation Audit Trail</h3>
+        
+        <div class="notes-timeline">
+          {% for note in notes %}
+            <div class="note-card">
+              <div class="flex justify-between items-center" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.35rem;">
+                <strong>👮 {{ note.admin_name }}</strong>
+                <span>{{ note.created_at|datetime('%d %b %Y, %I:%M %p') }}</span>
+              </div>
+              
+              {% if note.previous_status and note.new_status %}
+                <div style="font-size: 0.78rem; margin-bottom: 0.5rem;">
+                  Status changed: <span class="badge badge-low">{{ note.previous_status }}</span> &rarr; <span class="badge badge-success">{{ note.new_status }}</span>
+                </div>
+              {% endif %}
+
+              <div style="font-size: 0.88rem; color: var(--text-main); line-height: 1.45;">
+                {{ note.note }}
+              </div>
+            </div>
+          {% else %}
+            <div style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 1rem;">
+              No investigation notes recorded yet.
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}
