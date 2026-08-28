@@ -74,8 +74,11 @@ def login():
             session['role'] = user.role
             session['user_role'] = user.role
             session['user_name'] = user.fullname
-            user.last_login = datetime.now(timezone.utc)
-            db.session.commit()
+            try:
+                user.last_login = datetime.now(timezone.utc)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
 
             record_login(user.id, email, 'SUCCESS', request)
             flash(f'Welcome back, {user.fullname}!', 'success')

@@ -31,9 +31,7 @@ def create_app(config_name=None):
     csrf.init_app(app)
     mail.init_app(app)
     
-    # Exclude specific API endpoints from CSRF if needed (e.g. quick classify or test endpoints)
-    # csrf.exempt(some_blueprint)
-    
+    # Exclude specific API endpoints from CSRF if needed (e.g. public quick check API)
     # Register blueprints
     from blueprints.auth import auth_bp
     from blueprints.report import report_bp
@@ -42,7 +40,11 @@ def create_app(config_name=None):
     from blueprints.chatbot import chatbot_bp
     from blueprints.tracker import tracker_bp
     from blueprints.awareness import awareness_bp
+    from blueprints.fraud_checker import fraud_checker_bp
     
+    # Exempt public JSON scan endpoint
+    csrf.exempt(fraud_checker_bp)
+
     app.register_blueprint(auth_bp)
     app.register_blueprint(report_bp)
     app.register_blueprint(dashboard_bp)
@@ -50,6 +52,30 @@ def create_app(config_name=None):
     app.register_blueprint(chatbot_bp)
     app.register_blueprint(tracker_bp)
     app.register_blueprint(awareness_bp)
+    app.register_blueprint(fraud_checker_bp)
+
+    # Top-level URL routing aliases for citizen convenience
+    from flask import redirect, url_for, request
+
+    @app.route('/login')
+    def login_alias():
+        return redirect(url_for('auth.login', **request.args))
+
+    @app.route('/register')
+    def register_alias():
+        return redirect(url_for('auth.register', **request.args))
+
+    @app.route('/dashboard')
+    def dashboard_alias():
+        return redirect(url_for('dashboard.index', **request.args))
+
+    @app.route('/my-complaints')
+    def my_complaints_alias():
+        return redirect(url_for('dashboard.index', **request.args))
+
+    @app.route('/track-status')
+    def track_status_alias():
+        return redirect(url_for('tracker.track', **request.args))
     
     from utils.constants import EMERGENCY_HELPLINES
 

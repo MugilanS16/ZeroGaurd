@@ -133,6 +133,7 @@
             <th>Threat Category</th>
             <th>Risk Level</th>
             <th>Amount Verification</th>
+            <th>Evidence Relevance</th>
             <th>Complainant</th>
             <th>Date Reported</th>
             <th>Status</th>
@@ -162,6 +163,17 @@
                   <span class="badge badge-warning" title="Discrepancy flagged for manual review">⚠️ Manual Review</span>
                 {% elif c.amount_verification_status == 'Mismatch' %}
                   <span class="badge badge-critical" title="Claimed amount mismatched evidence OCR">❌ Mismatch</span>
+                {% else %}
+                  <span class="badge badge-secondary" style="font-size: 0.75rem;">➖ N/A</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if c.evidence_relevance_status == 'Relevant' %}
+                  <span class="badge badge-success" title="Evidence text semantically matches complaint context">✅ Relevant</span>
+                {% elif c.evidence_relevance_status == 'Manual Review Needed' %}
+                  <span class="badge badge-warning" title="Evidence flagged for manual review">⚠️ Relevance Unclear (Manual Review)</span>
+                {% elif c.evidence_relevance_status == 'No Relevant Signal Found' %}
+                  <span class="badge badge-critical" title="No relevant keywords found in OCR evidence">❌ Unrelated</span>
                 {% else %}
                   <span class="badge badge-secondary" style="font-size: 0.75rem;">➖ N/A</span>
                 {% endif %}

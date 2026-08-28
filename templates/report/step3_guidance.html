@@ -189,6 +189,45 @@
           {% endif %}
         {% endif %}
 
+        <!-- Evidence Content & Semantic Relevance Feedback -->
+        {% if relevance_result %}
+          {% if relevance_result.status == 'verified' %}
+            <div style="background: var(--accent-green-light); border: 1px solid var(--accent-green); border-radius: var(--radius-md); padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.88rem; color: var(--accent-green); display: flex; align-items: center; gap: 0.6rem;">
+              <span style="font-size: 1.2rem;">✅</span>
+              <div>
+                <strong>Evidence Content Verified:</strong> {{ relevance_result.message }}
+              </div>
+            </div>
+          {% elif relevance_result.status == 'unverified' or relevance_warning %}
+            <div style="background: #fef2f2; border: 1px solid #ef4444; border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem; font-size: 0.9rem; color: #991b1b;">
+              <div style="display: flex; align-items: flex-start; gap: 0.6rem; margin-bottom: 0.75rem;">
+                <span style="font-size: 1.25rem;">⚠️</span>
+                <div>
+                  <strong style="font-size: 0.95rem;">Unverified Evidence Warning (Content Mismatch)</strong>
+                  <div style="margin-top: 0.25rem; line-height: 1.4;">{{ relevance_result.message }}</div>
+                </div>
+              </div>
+
+              <!-- Manual Override Checkbox -->
+              <div style="background: #ffffff; border: 1px dashed #f87171; padding: 0.75rem 1rem; border-radius: var(--radius-sm); margin-top: 0.5rem;">
+                <label style="display: flex; align-items: flex-start; gap: 0.6rem; cursor: pointer; color: var(--text-main); font-size: 0.85rem;">
+                  <input type="checkbox" name="manual_override" value="true" style="margin-top: 0.2rem;">
+                  <span>
+                    <strong>This evidence is correct, just not text-based:</strong> Flag my report for manual Cyber-Cell officer verification (e.g. photo of physical context, graphic media, or non-textual proof).
+                  </span>
+                </label>
+              </div>
+            </div>
+          {% elif relevance_result.status == 'manual_review_needed' %}
+            <div style="background: #fffbeb; border: 1px solid #f59e0b; border-radius: var(--radius-md); padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.88rem; color: #92400e; display: flex; align-items: center; gap: 0.6rem;">
+              <span style="font-size: 1.2rem;">⚠️</span>
+              <div>
+                <strong>Evidence Content Flagged for Manual Review:</strong> Citizen override noted. Officer will verify non-textual evidence manually.
+              </div>
+            </div>
+          {% endif %}
+        {% endif %}
+
         <!-- Selected File Previews -->
         <div class="file-preview-list" id="file-preview-list"></div>
       </div>

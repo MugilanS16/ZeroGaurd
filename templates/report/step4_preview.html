@@ -89,10 +89,32 @@
       </div>
     {% endif %}
 
-    <!-- Uploaded Evidence List & AI Forensic Screening -->
+    <!-- Uploaded Evidence List & Verification Overview -->
     {% if draft.evidence_meta %}
       <div style="margin-bottom: 1.75rem;">
-        <h3 style="font-size: 1.1rem; margin-bottom: 0.75rem;">Attached Evidence Files & AI Forensic Screening</h3>
+        <h3 style="font-size: 1.1rem; margin-bottom: 0.75rem;">Attached Evidence Files & AI Verification</h3>
+        
+        <!-- Evidence Verification Status Overview Card -->
+        <div style="background: var(--bg-surface-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.6rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+            <span style="font-size: 0.88rem; font-weight: 600;">Evidence Content Relevance Check:</span>
+            {% if draft.evidence_relevance and draft.evidence_relevance.status == 'verified' %}
+              <span class="badge badge-success">✅ Verified — Relevant to Complaint</span>
+            {% elif draft.evidence_relevance and draft.evidence_relevance.status == 'manual_review_needed' %}
+              <span class="badge badge-warning">⚠️ Unverified Evidence — Flagged for Manual Review</span>
+            {% elif draft.evidence_relevance and draft.evidence_relevance.status == 'unverified' %}
+              <span class="badge badge-critical">❌ Unverified Evidence</span>
+            {% else %}
+              <span class="badge badge-secondary">➖ Not Applicable (No Text Detected)</span>
+            {% endif %}
+          </div>
+          {% if draft.evidence_relevance and draft.evidence_relevance.matched_terms %}
+            <div style="font-size: 0.82rem; color: var(--text-muted);">
+              <strong>Matched Semantic Signals:</strong> {{ draft.evidence_relevance.matched_terms|join(', ') }}
+            </div>
+          {% endif %}
+        </div>
+
         <div class="file-preview-list" style="margin-bottom: 1rem;">
           {% for ev in draft.evidence_meta %}
             <div class="file-preview-item">

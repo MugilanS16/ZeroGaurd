@@ -75,35 +75,8 @@
         </div>
       </div>
 
-      <!-- 3-Stage Investigation Stepper -->
-      <div style="margin: 2rem 0;">
-        <h4 style="font-size: 1rem; margin-bottom: 1.25rem;">Investigation Progress Stepper</h4>
-
-        <div class="grid grid-3 gap-3" style="text-align: center;">
-          
-          <!-- Step 1 -->
-          <div style="background: {% if step_index >= 1 %}var(--accent-green-light){% else %}var(--bg-surface-subtle){% endif %}; border: 1px solid {% if step_index >= 1 %}var(--accent-green){% else %}var(--border-subtle){% endif %}; border-radius: var(--radius-md); padding: 1rem;">
-            <div style="font-size: 1.25rem; margin-bottom: 0.25rem;">📝</div>
-            <strong style="font-size: 0.9rem; color: {% if step_index >= 1 %}var(--accent-green){% else %}var(--text-muted){% endif %};">1. Submitted</strong>
-            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem;">Dossier Logged</div>
-          </div>
-
-          <!-- Step 2 -->
-          <div style="background: {% if step_index >= 2 %}var(--warning-light){% else %}var(--bg-surface-subtle){% endif %}; border: 1px solid {% if step_index >= 2 %}var(--warning){% else %}var(--border-subtle){% endif %}; border-radius: var(--radius-md); padding: 1rem;">
-            <div style="font-size: 1.25rem; margin-bottom: 0.25rem;">🔍</div>
-            <strong style="font-size: 0.9rem; color: {% if step_index >= 2 %}var(--warning){% else %}var(--text-muted){% endif %};">2. In Review</strong>
-            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem;">Cyber-Cell Assigned</div>
-          </div>
-
-          <!-- Step 3 -->
-          <div style="background: {% if step_index >= 3 %}var(--accent-green-light){% else %}var(--bg-surface-subtle){% endif %}; border: 1px solid {% if step_index >= 3 %}var(--accent-green){% else %}var(--border-subtle){% endif %}; border-radius: var(--radius-md); padding: 1rem;">
-            <div style="font-size: 1.25rem; margin-bottom: 0.25rem;">✅</div>
-            <strong style="font-size: 0.9rem; color: {% if step_index >= 3 %}var(--accent-green){% else %}var(--text-muted){% endif %};">3. Resolved</strong>
-            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem;">Action Completed</div>
-          </div>
-
-        </div>
-      </div>
+      <!-- 4-Stage Visual Investigation Timeline -->
+      {% include "components/status_timeline.html" %}
 
       <!-- Case Details Grid -->
       <div class="grid grid-2 gap-4" style="background: var(--bg-surface-subtle); padding: 1.25rem; border-radius: var(--radius-md); font-size: 0.9rem; margin-bottom: 1.5rem;">

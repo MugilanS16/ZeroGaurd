@@ -76,6 +76,11 @@ CATEGORY_QUESTIONS_FALLBACK = {
     'Fake Customer Care Scam': [
         {'id': 'fake_number_found', 'question': 'Where did you find the fake customer care number (Google Search, Ad, SMS)?', 'placeholder': 'e.g. Top search result on Google for Swiggy Refund Helpline', 'field_type': 'text', 'required': True},
         {'id': 'remote_app_installed', 'question': 'Did the caller ask you to install AnyDesk, TeamViewer, RustDesk, or QuickSupport?', 'placeholder': 'e.g. Asked to install AnyDesk and share 9-digit code', 'field_type': 'text', 'required': True}
+    ],
+    'Other': [
+        {'id': 'incident_narrative', 'question': 'Provide specific details of what transpired, timeline, and parties involved:', 'placeholder': 'Describe the sequence of events and perpetrator communication', 'field_type': 'text', 'required': True},
+        {'id': 'suspect_identifiers', 'question': 'Suspect phone numbers, email addresses, usernames, or website links:', 'placeholder': 'e.g. +91-XXXXX or suspect URL / handle', 'field_type': 'text', 'required': False},
+        {'id': 'impact_details', 'question': 'Was any financial amount debited or sensitive personal information compromised?', 'placeholder': 'e.g. Lost Rs 10,000 / Aadhaar leaked / Threats received', 'field_type': 'text', 'required': False}
     ]
 }
 
@@ -106,4 +111,5 @@ def generate_questions(crime_type: str, description: str) -> list:
         except Exception:
             pass
 
-    return CATEGORY_QUESTIONS_FALLBACK.get(crime_type, CATEGORY_QUESTIONS_FALLBACK['Phishing'])
+    return CATEGORY_QUESTIONS_FALLBACK.get(crime_type, CATEGORY_QUESTIONS_FALLBACK['Other'])
+

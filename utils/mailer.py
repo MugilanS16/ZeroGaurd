@@ -20,7 +20,7 @@ WHAT HAPPENS NEXT:
 1. Your complaint dossier is now available to the Nodal Cyber Crime Cell.
 2. In case of financial fraud, ensure you have also dialed 1930 within the golden hour.
 3. You can track ongoing investigation progress at any time using your Reference Number at:
-   http://127.0.0.1:5000/track
+   http://localhost:5000/track
 
 A copy of your verified PDF Complaint Letter is attached to this notification.
 
@@ -45,7 +45,7 @@ CYBER-CELL OFFICER NOTE:
 ============================================================
 
 You can review complete case details on your ZeroGuard AI Dashboard or by visiting:
-http://127.0.0.1:5000/track
+http://localhost:5000/track
 
 Regards,
 Cyber Crime Investigation Unit & ZeroGuard AI

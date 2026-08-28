@@ -24,9 +24,16 @@
           {% if complaint.amount_verification_status == 'Verified' %}
             <span class="badge badge-success">✅ Amount Verified</span>
           {% elif complaint.amount_verification_status == 'Manual Review Needed' %}
-            <span class="badge badge-warning">⚠️ Manual Review Needed</span>
+            <span class="badge badge-warning">⚠️ Amount Manual Review</span>
           {% elif complaint.amount_verification_status == 'Mismatch' %}
             <span class="badge badge-critical">❌ Amount Mismatch</span>
+          {% endif %}
+          {% if complaint.evidence_relevance_status == 'Relevant' %}
+            <span class="badge badge-success">✅ Evidence Relevant</span>
+          {% elif complaint.evidence_relevance_status == 'Manual Review Needed' %}
+            <span class="badge badge-warning">⚠️ Relevance Unclear (Manual Review)</span>
+          {% elif complaint.evidence_relevance_status == 'No Relevant Signal Found' %}
+            <span class="badge badge-critical">❌ Evidence Unrelated</span>
           {% endif %}
         </div>
         <p style="font-size: 0.9rem; margin-top: 0.25rem; color: var(--text-muted);">

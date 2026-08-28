@@ -6,6 +6,7 @@ from flask import (
     render_template, request, session, redirect, url_for, flash, jsonify, send_file, current_app, abort
 )
 from blueprints.report import report_bp
+from blueprints.auth.routes import login_required
 from database import db
 from database.models import Complaint, User
 from ai.classifier import classify_incident, enhance_description
@@ -38,13 +39,14 @@ def get_draft():
 
 @report_bp.route('/')
 def home():
-    """Home landing page."""
+    """Home landing page (Public)."""
     return render_template('index.html')
 
 # =====================================================================
 # REAL-TIME AI APIS (Debounced / Interactive)
 # =====================================================================
 @report_bp.route('/api/ai-quick-classify', methods=['POST'])
+@login_required
 def api_quick_classify():
     """Real-time live classification endpoint called as the user types."""
     data = request.get_json() or {}
@@ -63,6 +65,7 @@ def api_quick_classify():
     return jsonify(result)
 
 @report_bp.route('/api/ai-enhance-report', methods=['POST'])
+@login_required
 def api_enhance_report():
     """AI Polish endpoint: structures & formalizes informal / regional text."""
     data = request.get_json() or {}
@@ -80,6 +83,7 @@ def api_enhance_report():
 # =====================================================================
 
 @report_bp.route('/report', methods=['GET', 'POST'])
+@login_required
 def report_step1():
     """Step 1: Incident Description & Language Selection."""
     draft = get_draft()
@@ -112,6 +116,7 @@ def report_step1():
     return render_template('report/step1_report.html', draft=draft, languages=SUPPORTED_LANGUAGES)
 
 @report_bp.route('/report/step2', methods=['GET', 'POST'])
+@login_required
 def report_step2():
     """Step 2: Dynamic Category-Specific Follow-Up Questions."""
     draft = get_draft()
@@ -144,9 +149,13 @@ def report_step2():
 
     return render_template('report/step2_questions.html', draft=draft, questions=questions)
 
+from ai.evidence_validator import verify_amount_match
+from ai.evidence_relevance_checker import check_evidence_relevance
+
 @report_bp.route('/report/step3', methods=['GET', 'POST'])
+@login_required
 def report_step3():
-    """Step 3: Immediate Guidance Checklist & Evidence Upload with OCR Amount Verification."""
+    """Step 3: Immediate Guidance Checklist & Evidence Upload with OCR Amount & Content Relevance Verification."""
     draft = get_draft()
     if not draft.get('raw_description'):
         return redirect(url_for('report.report_step1'))
@@ -155,7 +164,9 @@ def report_step3():
     guidance_steps = generate_guidance(crime_type, draft.get('raw_description', ''))
 
     amount_warning = False
+    relevance_warning = False
     verification_result = draft.get('amount_verification')
+    relevance_result = draft.get('evidence_relevance')
 
     if request.method == 'POST':
         # Handle uploaded evidence files
@@ -174,7 +185,7 @@ def report_step3():
         draft['guidance'] = guidance_steps
         draft['evidence_meta'] = existing_meta
 
-        # Run OCR Evidence Amount Verification using structured answers & OCR evidence
+        # Run OCR Evidence Amount & Relevance Verifications
         upload_dir = get_upload_dir()
         image_paths = [
             str(upload_dir / item['saved_filename'])
@@ -185,42 +196,83 @@ def report_step3():
         answers = draft.get('answers', {})
         full_claim_text = f"{draft.get('raw_description', '')} {draft.get('formal_description', '')}"
 
+        # 1. Amount Verification Check
         verification_result = verify_amount_match(full_claim_text, image_paths, answers_dict=answers)
+        
+        # 2. Content & Semantic Relevance Check
+        relevance_result = check_evidence_relevance(
+            description_text=full_claim_text,
+            crime_type=draft.get('crime_type', 'General Cybercrime'),
+            evidence_image_paths=image_paths,
+            answers_dict=answers
+        )
+
         manual_override = request.form.get('manual_override') == 'true'
 
+        # Process Amount Check Status
         if verification_result['status'] == 'mismatch':
             if manual_override:
                 verification_result['status'] = 'manual_review_needed'
                 verification_result['message'] = 'Amount mismatch flagged for manual Cyber-Cell review via citizen override.'
-                draft['amount_verification'] = verification_result
-                session['report_draft'] = draft
-                session.modified = True
-                return redirect(url_for('report.report_step4'))
             else:
                 amount_warning = True
-                flash(verification_result['message'], 'danger')
-                draft['amount_verification'] = verification_result
-                session['report_draft'] = draft
-                session.modified = True
-                return render_template('report/step3_guidance.html', draft=draft, guidance_steps=guidance_steps, amount_warning=amount_warning, verification_result=verification_result)
-        else:
-            draft['amount_verification'] = verification_result
-            session['report_draft'] = draft
-            session.modified = True
-            return redirect(url_for('report.report_step4'))
 
-    return render_template('report/step3_guidance.html', draft=draft, guidance_steps=guidance_steps, amount_warning=amount_warning, verification_result=verification_result)
+        # Process Relevance Check Status
+        if relevance_result['status'] == 'unverified':
+            if manual_override:
+                relevance_result['status'] = 'manual_review_needed'
+                relevance_result['message'] = 'Evidence relevance flagged for manual Cyber-Cell review via citizen override.'
+            else:
+                relevance_warning = True
+
+        draft['amount_verification'] = verification_result
+        draft['evidence_relevance'] = relevance_result
+        session['report_draft'] = draft
+        session.modified = True
+
+        # If either check is actively failing without override, block and warn on Step 3
+        if amount_warning or relevance_warning:
+            if amount_warning:
+                flash(verification_result['message'], 'danger')
+            if relevance_warning:
+                flash(relevance_result['message'], 'danger')
+            return render_template(
+                'report/step3_guidance.html', 
+                draft=draft, 
+                guidance_steps=guidance_steps, 
+                amount_warning=amount_warning, 
+                relevance_warning=relevance_warning,
+                verification_result=verification_result,
+                relevance_result=relevance_result
+            )
+
+        return redirect(url_for('report.report_step4'))
+
+    return render_template(
+        'report/step3_guidance.html', 
+        draft=draft, 
+        guidance_steps=guidance_steps, 
+        amount_warning=amount_warning, 
+        relevance_warning=relevance_warning,
+        verification_result=verification_result,
+        relevance_result=relevance_result
+    )
 
 @report_bp.route('/report/step4', methods=['GET', 'POST'])
+@login_required
 def report_step4():
     """Step 4: Complaint Review & Verification."""
     draft = get_draft()
     if not draft.get('raw_description'):
         return redirect(url_for('report.report_step1'))
 
-    # Hard backend block: if evidence amount mismatch is active, block preview access
+    # Hard backend block: if evidence amount mismatch or unverified evidence is active without override
     if draft.get('amount_verification', {}).get('status') == 'mismatch':
         flash('⚠️ Evidence amount mismatch detected. You must upload valid evidence or use manual review before proceeding.', 'danger')
+        return redirect(url_for('report.report_step3'))
+
+    if draft.get('evidence_relevance', {}).get('status') == 'unverified':
+        flash('⚠️ Unverified evidence detected. You must upload evidence that relates to your complaint or flag for manual review before proceeding.', 'danger')
         return redirect(url_for('report.report_step3'))
 
     # Prepare redacted preview
@@ -229,6 +281,7 @@ def report_step4():
     return render_template('report/step4_preview.html', draft=draft, redacted_preview=redacted_preview)
 
 @report_bp.route('/report/submit', methods=['POST'])
+@login_required
 def report_submit():
     """Step 5: Final Submission, PDF generation, Evidence purge, and Notification."""
     draft = get_draft()
@@ -251,9 +304,23 @@ def report_submit():
         amount_verif = verify_amount_match(draft.get('raw_description', ''), image_paths, answers_dict=answers)
         draft['amount_verification'] = amount_verif
 
-    # Hard backend block: reject submission if amount status is mismatch
+    relevance_verif = draft.get('evidence_relevance')
+    if not relevance_verif or relevance_verif.get('status') in ('not_applicable', 'inconclusive'):
+        relevance_verif = check_evidence_relevance(
+            draft.get('raw_description', ''), 
+            crime_type=draft.get('crime_type', 'General Cybercrime'), 
+            evidence_image_paths=image_paths, 
+            answers_dict=answers
+        )
+        draft['evidence_relevance'] = relevance_verif
+
+    # Hard backend block: reject submission if amount or relevance status is blocked
     if amount_verif.get('status') == 'mismatch':
         flash('⚠️ Submission blocked due to unverified evidence amount mismatch.', 'danger')
+        return redirect(url_for('report.report_step3'))
+
+    if relevance_verif.get('status') == 'unverified':
+        flash('⚠️ Submission blocked due to unverified unrelated evidence without manual review override.', 'danger')
         return redirect(url_for('report.report_step3'))
 
     # Generate unique complaint reference: CC-YYYY-NNNNN
@@ -285,6 +352,17 @@ def report_submit():
         verif_status = 'Manual Review Needed'
     else:
         verif_status = 'N/A'
+
+    # Evidence relevance status formatting for DB
+    relevance_status_raw = relevance_verif.get('status', 'inconclusive')
+    if relevance_status_raw == 'verified':
+        rel_status = 'Verified'
+    elif relevance_status_raw == 'unverified':
+        rel_status = 'Unverified'
+    elif relevance_status_raw == 'manual_review_needed':
+        rel_status = 'Manual Review Needed'
+    else:
+        rel_status = 'Inconclusive'
     
     # Save complaint to database
     complaint = Complaint(
@@ -302,6 +380,8 @@ def report_submit():
         claimed_amount=claimed_amt,
         amount_verification_status=verif_status,
         amount_verification_details=amount_verif,
+        evidence_relevance_status=rel_status,
+        evidence_relevance_details=relevance_verif,
         pdf_filename=f"{ref_number}.pdf",
         status='Pending',
         created_at=datetime.now(timezone.utc)
@@ -358,6 +438,7 @@ def report_submit():
 
 @report_bp.route('/download-pdf/<reference_number>')
 @report_bp.route('/report/download-pdf/<reference_number>')
+@login_required
 def download_pdf(reference_number):
     """Allows downloading the official complaint PDF."""
     pdf_path = Path(current_app.root_path) / 'static' / 'generated_pdfs' / f"{reference_number}.pdf"

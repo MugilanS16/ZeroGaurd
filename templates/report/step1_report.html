@@ -58,14 +58,43 @@
 
       <!-- Raw Incident Textarea -->
       <div class="form-group">
-        <div class="flex justify-between items-center" style="margin-bottom: 0.4rem;">
+        <div class="flex justify-between items-center flex-wrap gap-2" style="margin-bottom: 0.4rem;">
           <label class="form-label" for="raw_description" style="margin-bottom: 0;">Incident Narrative</label>
-          <button type="button" id="btn-ai-polish" class="btn btn-ai btn-sm" title="Convert rough/regional description into formal FIR complaint format">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-            </svg>
-            <span>Polish & Structure with AI</span>
-          </button>
+          
+          <div class="flex items-center gap-2 flex-wrap">
+            <!-- Voice Input Controls -->
+            <div id="voice-input-container" class="voice-input-wrapper">
+              <select id="voice-lang-select" class="form-control form-control-sm" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; width: auto;" title="Voice Recognition Language">
+                <option value="en-IN" selected>🇬🇧 English (IN)</option>
+                <option value="hi-IN">🇮🇳 Hindi (हिन्दी)</option>
+                <option value="ta-IN">🇮🇳 Tamil (தமிழ்)</option>
+                <option value="te-IN">🇮🇳 Telugu (తెలుగు)</option>
+              </select>
+
+              <button type="button" id="btn-voice-input" class="btn btn-outline btn-sm mic-btn" title="Speak your complaint via Voice Input">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                  <line x1="12" y1="19" x2="12" y2="23"></line>
+                  <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
+                <span id="voice-btn-text">Voice Input</span>
+              </button>
+
+              <div id="voice-listening-indicator" class="listening-badge" style="display: none;">
+                <span class="mic-pulse-dot"></span>
+                <span style="font-size: 0.78rem; font-weight: 600; color: var(--danger);">Listening...</span>
+              </div>
+            </div>
+
+            <!-- AI Polish Button -->
+            <button type="button" id="btn-ai-polish" class="btn btn-ai btn-sm" title="Convert rough/regional description into formal FIR complaint format">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+              <span>Polish with AI</span>
+            </button>
+          </div>
         </div>
 
         <textarea 
@@ -78,8 +107,11 @@
           autofocus
         >{{ draft.raw_description }}</textarea>
         
-        <div class="form-help">
-          💡 <strong>Tip:</strong> Include dates, approximate amounts, suspect phone/WhatsApp numbers, fake links, or payment apps involved.
+        <!-- Voice Status Banner -->
+        <div id="voice-status-msg" class="voice-status-banner" style="display: none; margin-top: 0.4rem;"></div>
+
+        <div class="form-help" style="margin-top: 0.5rem;">
+          💡 <strong>Tip:</strong> Include dates, approximate amounts, suspect phone/WhatsApp numbers, fake links, or payment apps involved. You can type or use 🎤 <strong>Voice Input</strong>.
         </div>
         <div id="ai-polish-feedback" style="display: none;"></div>
       </div>
@@ -106,7 +138,7 @@
         </div>
         
         <p id="live-summary-text" style="font-size: 0.88rem; margin: 0; color: var(--text-main);">
-          Start typing your incident description above to see real-time AI category matching and risk scoring.
+          Start typing or speaking your incident description above to see real-time AI category matching and risk scoring.
         </p>
       </div>
 
@@ -126,4 +158,5 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/wizard.js') }}"></script>
+<script src="{{ url_for('static', filename='js/voice_input.js') }}"></script>
 {% endblock %}

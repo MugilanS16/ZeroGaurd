@@ -72,6 +72,10 @@ class Complaint(db.Model):
     claimed_amount = db.Column(db.Float, nullable=True)
     amount_verification_status = db.Column(db.String(30), default='N/A', nullable=False, index=True) # Verified, Mismatch, Manual Review Needed, N/A
     amount_verification_details_json = db.Column(db.Text, default='{}', nullable=False)
+
+    # Evidence Semantic Content Relevance fields
+    evidence_relevance_status = db.Column(db.String(40), default='N/A', nullable=False, index=True) # Relevant, No Relevant Signal Found, Manual Review Needed, N/A
+    evidence_relevance_details_json = db.Column(db.Text, default='{}', nullable=False)
     
     pdf_filename = db.Column(db.String(120), nullable=True)
     status = db.Column(db.String(30), default='Pending', nullable=False, index=True) # Pending, In Review, Resolved
@@ -127,6 +131,17 @@ class Complaint(db.Model):
     def amount_verification_details(self, value):
         self.amount_verification_details_json = json.dumps(value or {}, ensure_ascii=False)
 
+    @property
+    def evidence_relevance_details(self):
+        try:
+            return json.loads(self.evidence_relevance_details_json) if self.evidence_relevance_details_json else {}
+        except Exception:
+            return {}
+
+    @evidence_relevance_details.setter
+    def evidence_relevance_details(self, value):
+        self.evidence_relevance_details_json = json.dumps(value or {}, ensure_ascii=False)
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -146,10 +161,117 @@ class Complaint(db.Model):
             'claimed_amount': self.claimed_amount,
             'amount_verification_status': self.amount_verification_status,
             'amount_verification_details': self.amount_verification_details,
+            'evidence_relevance_status': self.evidence_relevance_status,
+            'evidence_relevance_details': self.evidence_relevance_details,
             'pdf_filename': self.pdf_filename,
             'status': self.status,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
             'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None
+        }
+
+    def get_timeline_stages(self):
+        """Returns structured status timeline stages, active stage description, and transition timestamps."""
+        status_lower = (self.status or '').lower()
+        
+        # Determine current stage index (1: Submitted, 2: Pending Review, 3: In Investigation, 4: Resolved)
+        if status_lower == 'resolved':
+            current_stage = 4
+        elif status_lower in ('in review', 'in_review', 'investigating'):
+            current_stage = 3
+        elif status_lower in ('pending', 'pending review'):
+            current_stage = 2
+        else:
+            current_stage = 1
+
+        # Extract timestamps from AdminNote status transitions
+        stage_dates = {
+            1: self.created_at,
+            2: None,
+            3: None,
+            4: None
+        }
+
+        try:
+            notes = self.admin_notes.all() if hasattr(self.admin_notes, 'all') else list(self.admin_notes)
+            for note in notes:
+                new_st = (note.new_status or '').lower()
+                if new_st in ('pending', 'pending review') and not stage_dates[2]:
+                    stage_dates[2] = note.created_at
+                elif new_st in ('in review', 'in_review', 'investigating') and not stage_dates[3]:
+                    stage_dates[3] = note.created_at
+                elif new_st == 'resolved' and not stage_dates[4]:
+                    stage_dates[4] = note.created_at
+        except Exception:
+            pass
+
+        # Fallback dates for active/completed stages if specific transition note is absent
+        if current_stage >= 2 and not stage_dates[2]:
+            stage_dates[2] = self.created_at
+        if current_stage >= 3 and not stage_dates[3]:
+            stage_dates[3] = self.updated_at
+        if current_stage >= 4 and not stage_dates[4]:
+            stage_dates[4] = self.updated_at
+
+        # Reassuring descriptions per stage
+        descriptions = {
+            1: f"Your complaint has been received and assigned reference number {self.reference_number}.",
+            2: "Your complaint is in queue for review by our cyber-cell team.",
+            3: "An investigator is actively reviewing your case and evidence.",
+            4: "Your case has been resolved. Check your email for details or contact 1930 for further assistance."
+        }
+
+        stages = [
+            {
+                'index': 1,
+                'title': 'Submitted',
+                'date': stage_dates[1],
+                'is_completed': current_stage >= 1,
+                'is_active': current_stage == 1
+            },
+            {
+                'index': 2,
+                'title': 'Pending Review',
+                'date': stage_dates[2] if current_stage >= 2 else None,
+                'is_completed': current_stage > 2,
+                'is_active': current_stage == 2
+            },
+            {
+                'index': 3,
+                'title': 'In Investigation',
+                'date': stage_dates[3] if current_stage >= 3 else None,
+                'is_completed': current_stage > 3,
+                'is_active': current_stage == 3
+            },
+            {
+                'index': 4,
+                'title': 'Resolved',
+                'date': stage_dates[4] if current_stage >= 4 else None,
+                'is_completed': current_stage == 4,
+                'is_active': current_stage == 4
+            }
+        ]
+
+        # Fix completion flags for resolved case
+        if current_stage == 4:
+            for s in stages:
+                s['is_completed'] = True
+                s['is_active'] = (s['index'] == 4)
+
+        # Calculate progress percentage
+        if current_stage == 4:
+            progress_percent = 100
+        elif current_stage == 3:
+            progress_percent = 66
+        elif current_stage == 2:
+            progress_percent = 33
+        else:
+            progress_percent = 0
+
+        return {
+            'current_stage': current_stage,
+            'current_description': descriptions.get(current_stage, ''),
+            'stages': stages,
+            'progress_percent': progress_percent
         }
 
     def __repr__(self):

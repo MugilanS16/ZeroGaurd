@@ -1,0 +1,57 @@
+{% set timeline_data = complaint.get_timeline_stages() %}
+
+<div class="status-timeline-container">
+  <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+    <h4 style="font-size: 0.95rem; margin: 0; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-main); display: flex; align-items: center; gap: 0.4rem;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span>Investigation Journey & Status Timeline</span>
+    </h4>
+    <span class="badge {{ complaint.status|status_badge }}" style="font-size: 0.8rem;">
+      {{ complaint.status }}
+    </span>
+  </div>
+
+  <div class="status-timeline">
+    <div class="status-timeline-track">
+      <div class="status-timeline-track-progress" style="width: {{ timeline_data.progress_percent }}%;"></div>
+    </div>
+
+    {% for stage in timeline_data.stages %}
+      <div class="timeline-step {% if stage.is_completed %}completed{% elif stage.is_active %}active{% else %}future{% endif %}">
+        <div class="step-node">
+          {% if stage.is_completed %}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          {% else %}
+            {{ stage.index }}
+          {% endif %}
+        </div>
+        <div class="step-details">
+          <span class="step-title">{{ stage.title }}</span>
+          {% if stage.date %}
+            <span class="step-date">{{ stage.date|datetime('%d %b %Y') }}</span>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Reassuring Active Stage Guidance Banner -->
+  <div style="background: var(--bg-surface); border-left: 4px solid {% if timeline_data.current_stage == 4 %}var(--accent-green){% else %}var(--primary){% endif %}; padding: 0.85rem 1.15rem; border-radius: var(--radius-sm); margin-top: 1.25rem;">
+    <div style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 0.2rem;">
+      Stage {{ timeline_data.current_stage }} Status Guidance:
+    </div>
+    <div style="font-size: 0.9rem; font-weight: 600; color: var(--text-main);">
+      {{ timeline_data.current_description }}
+    </div>
+  </div>
+
+  <!-- Sub-State Warning for Amount Verification Mismatch / Manual Review -->
+  {% if complaint.amount_verification_status in ['Mismatch', 'Manual Review Needed'] %}
+    <div style="margin-top: 0.75rem; background: rgba(245, 158, 11, 0.12); border: 1px solid var(--warning); padding: 0.55rem 0.85rem; border-radius: var(--radius-md); font-size: 0.82rem; color: var(--warning); display: flex; align-items: center; gap: 0.5rem;">
+      ⚠️ <strong>Sub-State Flag:</strong> Amount Verification Status is <strong>{{ complaint.amount_verification_status }}</strong> (Flagged for officer manual audit).
+    </div>
+  {% endif %}
+
+</div>

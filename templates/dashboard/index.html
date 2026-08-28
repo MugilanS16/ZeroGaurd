@@ -163,6 +163,9 @@
               </td>
               <td style="padding: 1rem; text-align: right;">
                 <div class="flex items-center justify-end gap-2">
+                  <button type="button" class="btn btn-outline btn-sm" onclick="toggleTimeline('timeline-row-{{ c.id }}')" title="View Case Timeline">
+                    Timeline ▾
+                  </button>
                   <a href="{{ url_for('tracker.track', ref=c.reference_number) }}" class="btn btn-outline btn-sm" title="Track Live Status">
                     Track &rarr;
                   </a>
@@ -175,6 +178,13 @@
                     PDF
                   </a>
                 </div>
+              </td>
+            </tr>
+            <!-- Expandable Status Timeline Row -->
+            <tr id="timeline-row-{{ c.id }}" style="display: none; background: var(--bg-surface-elevated);">
+              <td colspan="6" style="padding: 0.5rem 1rem 1rem 1rem;">
+                {% set complaint = c %}
+                {% include "components/status_timeline.html" %}
               </td>
             </tr>
           {% else %}
@@ -200,4 +210,15 @@
   </div>
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function toggleTimeline(rowId) {
+    const row = document.getElementById(rowId);
+    if (row) {
+      row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+    }
+  }
+</script>
 {% endblock %}

@@ -1,12 +1,22 @@
-/* Chatbot Styles & Layout */
+/* Full Viewport Chatbot Layout & Styles */
 
-.chat-wrapper {
-  max-width: 900px;
-  margin: 0 auto;
-  height: calc(100vh - 210px);
-  min-height: 560px;
+.chat-container-full {
+  flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0.75rem 1.25rem 1rem 1.25rem;
+}
+
+.chat-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
@@ -15,7 +25,8 @@
 }
 
 .chat-header {
-  padding: 1.25rem 1.5rem;
+  flex-shrink: 0;
+  padding: 1rem 1.5rem;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
@@ -23,9 +34,23 @@
   justify-content: space-between;
 }
 
+.chat-helpline-banner {
+  flex-shrink: 0;
+  background: var(--primary-light);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0.45rem 1.5rem;
+  font-size: 0.82rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--primary);
+  gap: 1rem;
+}
+
 .chat-messages {
   flex: 1;
   overflow-y: auto;
+  min-height: 0;
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
@@ -37,7 +62,7 @@
 .chat-bubble {
   display: flex;
   gap: 0.75rem;
-  max-width: 80%;
+  max-width: 82%;
   animation: fadeIn 0.25s ease-out;
 }
 
@@ -110,8 +135,14 @@
 .typing-indicator {
   display: flex;
   align-items: center;
+  gap: 8px;
+  padding: 0.6rem 0.95rem;
+}
+
+.typing-dots-group {
+  display: inline-flex;
+  align-items: center;
   gap: 4px;
-  padding: 0.5rem 0.85rem;
 }
 
 .typing-dot {
@@ -133,13 +164,15 @@
 
 /* Suggestions Chips */
 .chat-suggestions {
-  padding: 0.75rem 1.5rem;
+  flex-shrink: 0;
+  padding: 0.6rem 1.5rem;
   display: flex;
   gap: 0.5rem;
   overflow-x: auto;
   background: var(--bg-surface);
   border-top: 1px solid var(--border-subtle);
   scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
 }
 
 .chip-btn {
@@ -152,6 +185,7 @@
   color: var(--text-main);
   white-space: nowrap;
   cursor: pointer;
+  flex-shrink: 0;
   transition: all var(--transition-fast);
 }
 
@@ -163,7 +197,8 @@
 
 /* Input Area */
 .chat-input-area {
-  padding: 1rem 1.5rem;
+  flex-shrink: 0;
+  padding: 0.85rem 1.5rem;
   background: var(--bg-surface);
   border-top: 1px solid var(--border-subtle);
   display: flex;
@@ -173,4 +208,56 @@
 
 .chat-input-area input {
   flex: 1;
+}
+
+/* Responsive Layout Adjustments */
+@media (max-width: 1024px) {
+  .chat-container-full {
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .chat-container-full {
+    padding: 0;
+  }
+
+  .chat-wrapper {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+  }
+
+  .chat-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .chat-helpline-banner {
+    padding: 0.4rem 1rem;
+    font-size: 0.78rem;
+    flex-direction: row;
+  }
+
+  .chat-messages {
+    padding: 0.85rem;
+    gap: 0.85rem;
+  }
+
+  .chat-bubble {
+    max-width: 90%;
+  }
+
+  .chat-suggestions {
+    padding: 0.5rem 0.85rem;
+  }
+
+  .chat-input-area {
+    padding: 0.65rem 0.85rem;
+    gap: 0.5rem;
+  }
+
+  .hide-on-mobile {
+    display: none !important;
+  }
 }

@@ -4,60 +4,106 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/chatbot.css') }}">
+<style>
+  /* Dedicated Full Viewport Layout for Chatbot Page */
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .emergency-banner {
+    flex-shrink: 0;
+  }
+
+  .navbar {
+    flex-shrink: 0;
+  }
+
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 0 !important;
+    overflow: hidden;
+  }
+
+  /* Hide global footer and floating chat button on full chatbot page */
+  .footer {
+    display: none !important;
+  }
+
+  a.btn-ai[title*="Ask ZeroGuard"],
+  a.btn-ai[href*="chatbot"] {
+    display: none !important;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="container animate-fade-in">
+<div class="chat-container-full animate-fade-in">
   
   <div class="chat-wrapper">
     
-    <!-- Chat Header -->
+    <!-- Chat Header (Fixed Top) -->
     <div class="chat-header">
       <div class="flex items-center gap-3">
-        <div class="brand-icon" style="width: 42px; height: 42px;">
+        <div class="brand-icon" style="width: 40px; height: 40px; flex-shrink: 0;">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
           </svg>
         </div>
         <div>
-          <div class="flex items-center gap-2">
-            <h3 style="font-size: 1.15rem; margin-bottom: 0;">ZeroGuard AI Assistant</h3>
-            <span class="badge badge-success" style="font-size: 0.72rem;">● Active & Ready</span>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h3 style="font-size: 1.1rem; margin-bottom: 0; font-weight: 700;">ZeroGuard AI Assistant</h3>
+            <span class="badge badge-success" style="font-size: 0.7rem;">● Active & Ready</span>
           </div>
-          <p style="font-size: 0.8rem; margin: 0; color: var(--text-muted);">
+          <p style="font-size: 0.78rem; margin: 0; color: var(--text-muted);">
             Empathetic legal & technical incident guidance under IT Act 2000
           </p>
         </div>
       </div>
 
       <div class="flex items-center gap-2">
+        <select id="chat-lang-select" class="form-control form-control-sm" style="padding: 0.25rem 0.5rem; font-size: 0.82rem; font-weight: 600; width: auto; background: var(--bg-surface-elevated); border-color: var(--border-subtle); color: var(--text-main);" title="Select Chat Language">
+          <option value="en" selected>🇬🇧 English</option>
+          <option value="hi">🇮🇳 हिंदी (Hindi)</option>
+          <option value="ta">🇮🇳 தமிழ் (Tamil)</option>
+          <option value="te">🇮🇳 తెలుగు (Telugu)</option>
+        </select>
+
         <button id="chat-clear-btn" type="button" class="btn btn-outline btn-sm" title="Reset Chat Conversation">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="1 4 1 10 7 10"></polyline>
             <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
           </svg>
-          <span>Clear Chat</span>
+          <span class="hide-on-mobile">Clear Chat</span>
         </button>
       </div>
     </div>
 
-    <!-- Emergency Ticker Bar inside chat -->
-    <div style="background: var(--primary-light); border-bottom: 1px solid var(--border-subtle); padding: 0.4rem 1.5rem; font-size: 0.82rem; display: flex; justify-content: space-between; align-items: center; color: var(--primary);">
+    <!-- Emergency Ticker Bar inside chat (Fixed Below Header) -->
+    <div class="chat-helpline-banner">
       <div>💡 <strong>Active Financial Loss?</strong> Dial <strong>1930</strong> immediately within the golden hour to freeze bank transfers.</div>
-      <a href="{{ url_for('report.report_step1') }}" style="font-weight: 700; text-decoration: underline;">File Complaint &rarr;</a>
+      <a href="{{ url_for('report.report_step1') }}" style="font-weight: 700; text-decoration: underline; white-space: nowrap;">File Complaint &rarr;</a>
     </div>
 
-    <!-- Message Feed -->
+    <!-- Message Feed (Main Scrollable Region) -->
     <div class="chat-messages" id="chat-messages">
       <!-- Bubbles populated by chatbot.js -->
     </div>
 
-    <!-- Suggestion Chips Bar -->
+    <!-- Suggestion Chips Bar (Fixed Above Input) -->
     <div class="chat-suggestions" id="chat-suggestions">
       <!-- Chips populated by chatbot.js -->
     </div>
 
-    <!-- Input Bar -->
+    <!-- Input Area (Fixed Bottom) -->
     <div class="chat-input-area">
       <input 
         type="text" 
@@ -66,12 +112,12 @@
         placeholder="Ask a question (e.g. 'How to report UPI fraud?', 'Explain step 2', 'What is RBI zero liability?')..."
         autocomplete="off"
       >
-      <button id="chat-send-btn" type="button" class="btn btn-ai" style="padding: 0.75rem 1.5rem;">
+      <button id="chat-send-btn" type="button" class="btn btn-ai" style="padding: 0.75rem 1.5rem; flex-shrink: 0;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="22" y1="2" x2="11" y2="13"></line>
           <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
         </svg>
-        <span>Send</span>
+        <span class="hide-on-mobile">Send</span>
       </button>
     </div>
 

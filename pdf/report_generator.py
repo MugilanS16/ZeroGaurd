@@ -108,11 +108,24 @@ def generate_complaint_pdf(complaint_data: dict, output_filepath: str) -> str:
 
     # Format Evidence Status for PDF Stamp
     if verif_status == 'Verified':
-        verif_stamp = "<font color='#16A34A'><b>Evidence Status: ✅ Amount Verified Against Evidence</b></font>"
+        verif_stamp = "<font color='#16A34A'><b>✅ Amount Verified Against Evidence</b></font>"
     elif verif_status == 'Manual Review Needed':
-        verif_stamp = "<font color='#D97706'><b>Evidence Status: ⚠️ Unverified — Pending Manual Review by Admin</b></font>"
+        verif_stamp = "<font color='#D97706'><b>⚠️ Unverified — Pending Manual Review</b></font>"
+    elif verif_status == 'Mismatch':
+        verif_stamp = "<font color='#DC2626'><b>❌ Amount Mismatched Evidence</b></font>"
     else:
-        verif_stamp = "<font color='#64748B'><b>Evidence Status: ➖ No Financial Amount Claimed</b></font>"
+        verif_stamp = "<font color='#64748B'><b>➖ No Financial Amount Claimed</b></font>"
+
+    # Format Evidence Content Relevance Status for PDF Stamp
+    rel_status = complaint_data.get('evidence_relevance_status', 'Inconclusive')
+    if rel_status in ('Verified', 'Relevant'):
+        relevance_stamp = "<font color='#16A34A'><b>✅ Evidence Content Verified — Relevant to Complaint</b></font>"
+    elif rel_status == 'Manual Review Needed':
+        relevance_stamp = "<font color='#D97706'><b>⚠️ Unverified Evidence — Flagged for Manual Review</b></font>"
+    elif rel_status in ('Unverified', 'No Relevant Signal Found'):
+        relevance_stamp = "<font color='#DC2626'><b>❌ Unverified Evidence — Content Does Not Match Description</b></font>"
+    else:
+        relevance_stamp = "<font color='#64748B'><b>➖ Evidence Relevance Not Applicable (No Text Detected)</b></font>"
 
     meta_data = [
         [Paragraph("<b>Complaint Reference:</b>", bold_body), Paragraph(f"<b>{ref_no}</b>", bold_body),
@@ -121,11 +134,11 @@ def generate_complaint_pdf(complaint_data: dict, output_filepath: str) -> str:
          Paragraph("<b>Evaluated Risk Level:</b>", bold_body), Paragraph(f"<b>{risk_level}</b>", bold_body)],
         [Paragraph("<b>Complainant Name:</b>", bold_body), Paragraph(complaint_data.get('user_name', 'Anonymous Citizen'), body_style),
          Paragraph("<b>Complainant Email:</b>", bold_body), Paragraph(complaint_data.get('user_email', 'Not Provided'), body_style)],
-        [Paragraph("<b>Financial Verification:</b>", bold_body), Paragraph(verif_stamp, body_style),
-         Paragraph("<b>Contact Phone:</b>", bold_body), Paragraph(complaint_data.get('user_phone', 'Not Provided'), body_style)]
+        [Paragraph("<b>Financial Amount Check:</b>", bold_body), Paragraph(verif_stamp, body_style),
+         Paragraph("<b>Content Relevance Check:</b>", bold_body), Paragraph(relevance_stamp, body_style)]
     ]
 
-    t_meta = Table(meta_data, colWidths=[120, 145, 120, 145])
+    t_meta = Table(meta_data, colWidths=[125, 140, 125, 140])
     t_meta.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F8FAFC')),
         ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#CBD5E1')),
@@ -191,7 +204,7 @@ def generate_complaint_pdf(complaint_data: dict, output_filepath: str) -> str:
     evidence_meta = complaint_data.get('evidence_meta', [])
     if evidence_meta:
         story.append(Paragraph("4. ATTACHED DIGITAL EVIDENCE METADATA & OCR VERIFICATION", section_heading))
-        story.append(Paragraph(f"<b>Overall Evidence Verification Status:</b> {verif_stamp}", body_style))
+        story.append(Paragraph(f"<b>Content Semantic Verification:</b> {relevance_stamp}", body_style))
         story.append(Spacer(1, 6))
 
         ev_rows = [[
@@ -205,10 +218,10 @@ def generate_complaint_pdf(complaint_data: dict, output_filepath: str) -> str:
                 Paragraph(ev.get('category', 'Document'), body_style),
                 Paragraph(ev.get('original_name', ev.get('name', 'evidence_file')), body_style),
                 Paragraph(ev.get('size', 'N/A'), body_style),
-                Paragraph(verif_stamp, body_style)
+                Paragraph(relevance_stamp, body_style)
             ])
 
-        t_ev = Table(ev_rows, colWidths=[110, 190, 70, 160])
+        t_ev = Table(ev_rows, colWidths=[100, 160, 60, 210])
         t_ev.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F1F5F9')),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
