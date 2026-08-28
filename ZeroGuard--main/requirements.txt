@@ -1,9 +1,0 @@
-Flask
-Flask-SQLAlchemy
-Flask-JWT-Extended
-Werkzeug
-reportlab
-google-generativeai
-python-dotenv
-Flask-Cors
-Flask-Migrate
