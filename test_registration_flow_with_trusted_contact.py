@@ -3,7 +3,7 @@ import sys
 from datetime import datetime, timezone
 from app import create_app
 from database import db
-from database.models import User, EmergencyContact, OTPVerification, ActivityLog
+from database.models import User, EmergencyContact, Guardian, OTPVerification, ActivityLog, OTPChallenge
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
@@ -13,9 +13,11 @@ def test_full_registration_flow():
     print("TESTING FULL REGISTRATION FLOW WITH EMERGENCY TRUSTED CONTACT & OTP")
     print("=" * 80)
 
-    app = create_app('development')
+    app = create_app('testing')
     app.config['TESTING'] = True
     app.config['WTF_CSRF_ENABLED'] = False
+    app.config['MAIL_SUPPRESS_SEND'] = True
+    app.config['MESSAGING_PROVIDER'] = 'console'
 
     client = app.test_client()
 
@@ -51,40 +53,51 @@ def test_full_registration_flow():
             'terms': 'y'
         }
 
-        resp1 = client.post('/auth/register', data=reg_payload, follow_redirects=True)
-        print(f"  Response Code: {resp1.status_code}")
-        assert resp1.status_code == 200
+        from unittest.mock import patch, MagicMock
+        with patch('smtplib.SMTP') as mock_smtp_cls:
+            smtp_inst = MagicMock()
+            mock_smtp_cls.return_value.__enter__.return_value = smtp_inst
 
-        # Check DB before OTP verification: User exists but unverified, EmergencyContact does NOT exist yet
-        unverified_user = User.query.filter_by(email=new_user_email).first()
-        assert unverified_user is not None
-        assert unverified_user.is_verified == False
+            resp1 = client.post('/auth/register', data=reg_payload, follow_redirects=True)
+            print(f"  Response Code: {resp1.status_code}")
+            assert resp1.status_code == 200
 
-        pre_contact = EmergencyContact.query.filter_by(user_id=unverified_user.id).first()
-        assert pre_contact is None, "EmergencyContact must NOT be created before OTP verification!"
+            # Check DB after registration: User created (unverified), EmergencyContact & Guardian created
+            unverified_user = User.query.filter_by(email=new_user_email).first()
+            assert unverified_user is not None
+            assert unverified_user.is_verified == False
 
-        print("  --> Form submission accepted. User created (Unverified). EmergencyContact NOT orphaned before OTP!")
+            contact = EmergencyContact.query.filter_by(user_id=unverified_user.id).first()
+            assert contact is not None
+            assert contact.contact_name == 'Kavita Rao'
+            assert contact.email == trusted_contact_email
 
-        # -------------------------------------------------------------------
-        # STEP 2: RETRIEVE OTP & SUBMIT OTP VERIFICATION
-        # -------------------------------------------------------------------
-        print("\n[STEP 2] Fetching OTP and Verifying Account...")
-        otp_rec = OTPVerification.query.filter_by(email=new_user_email, purpose='registration', is_used=False).order_by(OTPVerification.created_at.desc()).first()
-        assert otp_rec is not None
+            guardian = Guardian.query.filter_by(user_id=unverified_user.id).first()
+            assert guardian is not None
+            assert guardian.verified == False
 
-        # In testing/dev setup, test with actual generated OTP logic or inspect OTP
-        # We can test OTP check directly or simulate OTP entry
-        # Let's inspect the OTP code generated for this user
-        # Note: set_otp hashes the code, so let's verify using client.post with the known demo OTP or set a known hash
-        otp_rec.expires_at = datetime.utcnow().replace(year=2030) # Ensure not expired
-        
-        # Override OTP hash to known code '123456' for verification test
-        otp_rec.set_otp('123456')
-        db.session.commit()
+            print("  --> Form submission accepted. User created (Unverified). EmergencyContact & Guardian created with confirmation request!")
 
-        resp2 = client.post('/auth/verify-otp', data={'otp': '123456'}, follow_redirects=True)
-        print(f"  OTP Verification Response Code: {resp2.status_code}")
-        assert resp2.status_code == 200
+            # -------------------------------------------------------------------
+            # STEP 2: RETRIEVE OTP CHALLENGE & SUBMIT 2FA VERIFICATION
+            # -------------------------------------------------------------------
+            print("\n[STEP 2] Fetching OTP and Verifying Account...")
+            from database.models import OTPChallenge
+            from backend.services.otp_service import hash_otp
+
+            challenge = OTPChallenge.query.filter_by(user_id=unverified_user.id, purpose='registration').order_by(OTPChallenge.created_at.desc()).first()
+            assert challenge is not None
+            challenge.expires_at = datetime.utcnow().replace(year=2030)
+            challenge.otp_hash = hash_otp('123456')
+            db.session.commit()
+
+            with client.session_transaction() as sess:
+                sess['2fa_challenge_id'] = challenge.id
+                sess['2fa_user_id'] = unverified_user.id
+
+            resp2 = client.post('/auth/verify-2fa', data={'otp': '123456'}, follow_redirects=True)
+            print(f"  2FA Verification Response Code: {resp2.status_code}")
+            assert resp2.status_code == 200
 
         # -------------------------------------------------------------------
         # STEP 3: CONFIRM USER & EMERGENCY CONTACT IN DATABASE

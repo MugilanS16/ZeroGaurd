@@ -2,10 +2,12 @@ from datetime import datetime, timedelta, timezone
 from collections import Counter
 from flask import render_template, request, redirect, url_for, flash, jsonify, session, abort
 from blueprints.admin import admin_bp
-from blueprints.auth.routes import admin_required
+from blueprints.auth.routes import admin_required, api_bp
 from database import db
 from database.models import User, Complaint, AdminNote
 from utils.mailer import send_status_update_notification
+from backend.services.notify_service import NotificationService
+
 
 @admin_bp.route('/')
 @admin_required
@@ -140,6 +142,19 @@ def update_complaint_status(complaint_id):
     db.session.add(admin_note)
     db.session.commit()
 
+    # Dispatch async guardian notifications (Sanitized: only Ref ID, new status, and short note)
+    if complaint.user_id:
+        NotificationService.notify_guardians_async(
+            user_id=complaint.user_id,
+            event_type='status_update',
+            case_ref=complaint.reference_number,
+            context={
+                'status': prev_status,
+                'new_status': new_status,
+                'short_note': note_text[:80]
+            }
+        )
+
     # Dispatch email update if requested or status changed
     recipient_email = complaint.user.email if complaint.user else None
     if recipient_email and notify_citizen:
@@ -157,6 +172,54 @@ def update_complaint_status(complaint_id):
 
     return redirect(url_for('admin.complaint_detail', complaint_id=complaint.id))
 
+@api_bp.route('/api/admin/stats', methods=['GET'])
+@admin_bp.route('/api/admin/stats', methods=['GET'])
+@admin_required
+def api_admin_stats():
+    """Returns telemetry metrics for admin dashboard."""
+    all_complaints = Complaint.query.all()
+    by_severity = {
+        'critical': sum(1 for c in all_complaints if c.risk_level.lower() == 'critical'),
+        'high': sum(1 for c in all_complaints if c.risk_level.lower() == 'high'),
+        'medium': sum(1 for c in all_complaints if c.risk_level.lower() == 'medium'),
+        'low': sum(1 for c in all_complaints if c.risk_level.lower() == 'low')
+    }
+    return jsonify({
+        'total': len(all_complaints),
+        'by_severity': by_severity,
+        'by_status': {
+            'pending': sum(1 for c in all_complaints if c.status == 'Pending'),
+            'in_review': sum(1 for c in all_complaints if c.status in ('In Review', 'In_Review')),
+            'resolved': sum(1 for c in all_complaints if c.status == 'Resolved')
+        }
+    }), 200
+
+@api_bp.route('/api/admin/reports/<int:report_id>', methods=['PATCH'])
+@admin_bp.route('/api/admin/reports/<int:report_id>', methods=['PATCH'])
+@admin_required
+def api_admin_update_report(report_id):
+    """PATCH /api/admin/reports/:id -> Updates complaint status."""
+    complaint = Complaint.query.get_or_404(report_id)
+    data = request.get_json() or {}
+    new_status = data.get('status', complaint.status)
+    prev_status = complaint.status
+    complaint.status = new_status
+    complaint.updated_at = datetime.now(timezone.utc)
+    db.session.commit()
+
+    if complaint.user_id:
+        NotificationService.notify_guardians_async(
+            user_id=complaint.user_id,
+            event_type='status_update',
+            case_ref=complaint.reference_number,
+            context={'status': prev_status, 'new_status': new_status, 'short_note': 'Status changed by admin'}
+        )
+
+    return jsonify({
+        'success': True,
+        'report': complaint.to_dict()
+    }), 200
+
 @admin_bp.route('/api/analytics')
 @admin_required
 def api_analytics():
@@ -172,3 +235,4 @@ def api_analytics():
         'statuses': status_counts,
         'risks': risk_counts
     })
+

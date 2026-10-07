@@ -1,26 +1,35 @@
 from datetime import datetime
 import json
+import hashlib
+from typing import Optional, List
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import String, Integer, Float, Text, Boolean, DateTime, ForeignKey, Enum
 from database import db
 
 class User(db.Model):
-    """User account model for citizens and cyber-cell administrators."""
+    """User account model for citizens and cyber-cell administrators with SMS/WhatsApp 2FA."""
     __tablename__ = 'users'
     
-    id = db.Column(db.Integer, primary_key=True)
-    fullname = db.Column(db.String(120), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False, index=True)
-    phone = db.Column(db.String(20), nullable=True, index=True)
-    password_hash = db.Column(db.String(256), nullable=False)
-    role = db.Column(db.String(20), default='citizen', nullable=False) # 'citizen' or 'admin'
-    is_verified = db.Column(db.Boolean, default=False, nullable=False)  # Email verification flag
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    last_login = db.Column(db.DateTime, nullable=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fullname: Mapped[str] = mapped_column(String(120), nullable=False)
+    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False, index=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(30), nullable=True, index=True)
+    phone_number: Mapped[Optional[str]] = mapped_column(String(30), nullable=True, index=True)  # Normalized E.164
+    phone_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    preferred_otp_channel: Mapped[str] = mapped_column(String(20), default='sms', nullable=False) # 'sms' or 'whatsapp'
+    password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
+    role: Mapped[str] = mapped_column(String(20), default='citizen', nullable=False) # 'citizen' or 'admin'
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)  # Verification flag
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    last_login: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     
     # Relationships
-    complaints = db.relationship('Complaint', back_populates='user', lazy='dynamic', cascade='all, delete-orphan')
-    login_records = db.relationship('LoginHistory', back_populates='user', lazy='dynamic', cascade='all, delete-orphan')
-    admin_notes = db.relationship('AdminNote', back_populates='admin', lazy='dynamic')
+    complaints = relationship('Complaint', back_populates='user', lazy='dynamic', cascade='all, delete-orphan')
+    login_records = relationship('LoginHistory', back_populates='user', lazy='dynamic', cascade='all, delete-orphan')
+    admin_notes = relationship('AdminNote', back_populates='admin', lazy='dynamic')
+    guardians = relationship('Guardian', back_populates='user', lazy='dynamic', cascade='all, delete-orphan')
+    otp_challenges = relationship('OTPChallenge', back_populates='user', lazy='dynamic', cascade='all, delete-orphan')
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -31,14 +40,23 @@ class User(db.Model):
     @property
     def is_admin(self):
         return self.role == 'admin'
+
+    @property
+    def e164_phone(self):
+        return self.phone_number or self.phone
     
     def to_dict(self):
         return {
             'id': self.id,
             'fullname': self.fullname,
+            'name': self.fullname,
             'email': self.email,
             'phone': self.phone,
+            'phone_number': self.phone_number or self.phone,
+            'phone_verified': self.phone_verified,
+            'preferred_otp_channel': self.preferred_otp_channel,
             'role': self.role,
+            'is_verified': self.is_verified,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
             'last_login': self.last_login.strftime('%Y-%m-%d %H:%M:%S') if self.last_login else None
         }
@@ -217,7 +235,7 @@ class Complaint(db.Model):
             1: f"Your complaint has been received and assigned reference number {self.reference_number}.",
             2: "Your complaint is in queue for review by our cyber-cell team.",
             3: "An investigator is actively reviewing your case and evidence.",
-            4: "Your case has been resolved. Check your email for details or contact 1930 for further assistance."
+            4: "Your case has been resolved. Check your dashboard for details or contact 1930 for further assistance."
         }
 
         stages = [
@@ -251,13 +269,11 @@ class Complaint(db.Model):
             }
         ]
 
-        # Fix completion flags for resolved case
         if current_stage == 4:
             for s in stages:
                 s['is_completed'] = True
                 s['is_active'] = (s['index'] == 4)
 
-        # Calculate progress percentage
         if current_stage == 4:
             progress_percent = 100
         elif current_stage == 3:
@@ -314,40 +330,168 @@ class LoginHistory(db.Model):
     """Security audit log recording all citizen and admin login activity."""
     __tablename__ = 'login_history'
     
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=True, index=True)
-    email_attempted = db.Column(db.String(120), nullable=True)
-    ip_address = db.Column(db.String(50), default='127.0.0.1')
-    user_agent = db.Column(db.String(255), nullable=True)
-    status = db.Column(db.String(20), default='SUCCESS') # SUCCESS, FAILED
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=True, index=True)
+    email_attempted: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    phone_attempted: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    login_method: Mapped[str] = mapped_column(String(30), default='password', nullable=False) # 'password', 'sms_otp', 'whatsapp_otp', 'sso'
+    ip_address: Mapped[str] = mapped_column(String(50), default='127.0.0.1')
+    user_agent: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default='SUCCESS') # SUCCESS, FAILED
+    success: Mapped[bool] = mapped_column(Boolean, default=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
     
     # Relationships
-    user = db.relationship('User', back_populates='login_records')
+    user = relationship('User', back_populates='login_records')
     
     def to_dict(self):
         return {
             'id': self.id,
             'user_id': self.user_id,
             'email_attempted': self.email_attempted,
+            'phone_attempted': self.phone_attempted,
+            'login_method': self.login_method,
             'ip_address': self.ip_address,
             'user_agent': self.user_agent,
             'status': self.status,
+            'success': self.success,
             'timestamp': self.timestamp.strftime('%Y-%m-%d %H:%M:%S') if self.timestamp else None
         }
 
     def __repr__(self):
-        return f'<LoginHistory {self.email_attempted} - {self.status} at {self.timestamp}>'
+        return f'<LoginHistory {self.email_attempted or self.phone_attempted} - {self.status} at {self.timestamp}>'
+
+
+class OTPChallenge(db.Model):
+    """SQLAlchemy 2.0 Model for SMS & WhatsApp OTP Challenges with HMAC-SHA256."""
+    __tablename__ = 'otp_challenges'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey('users.id', ondelete='SET NULL'), nullable=True, index=True)
+    phone_number: Mapped[str] = mapped_column(String(30), nullable=False, index=True)  # E.164
+    channel: Mapped[str] = mapped_column(String(20), default='sms', nullable=False)     # 'sms' or 'whatsapp'
+    purpose: Mapped[str] = mapped_column(String(30), default='2fa_login', nullable=False) # '2fa_login', 'registration', 'guardian_verify'
+    otp_hash: Mapped[str] = mapped_column(String(256), nullable=False)                  # HMAC-SHA256
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    consumed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    ip_address: Mapped[str] = mapped_column(String(50), default='127.0.0.1', nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    user = relationship('User', back_populates='otp_challenges')
+
+    @property
+    def is_expired(self) -> bool:
+        return datetime.utcnow() > self.expires_at
+
+    @property
+    def is_consumed(self) -> bool:
+        return self.consumed_at is not None
+
+    @property
+    def is_locked(self) -> bool:
+        return self.attempts >= 5
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'phone_number': self.phone_number[:4] + '******' + self.phone_number[-4:] if len(self.phone_number) >= 8 else '***',
+            'channel': self.channel,
+            'purpose': self.purpose,
+            'expires_at': self.expires_at.strftime('%Y-%m-%d %H:%M:%S') if self.expires_at else None,
+            'is_expired': self.is_expired,
+            'is_consumed': self.is_consumed,
+            'attempts': self.attempts,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
+        }
+
+    def __repr__(self):
+        return f'<OTPChallenge {self.id} for {self.phone_number} via {self.channel}>'
+
+
+class Guardian(db.Model):
+    """Emergency Guardian Model for trusted Email, SMS & WhatsApp notifications."""
+    __tablename__ = 'guardians'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    relationship_type: Mapped[str] = mapped_column(String(50), default='Guardian', nullable=False)
+    email: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, index=True)
+    phone_number: Mapped[str] = mapped_column(String(30), nullable=False, index=True) # E.164
+    preferred_channel: Mapped[str] = mapped_column(String(20), default='email', nullable=False) # 'email', 'sms', or 'whatsapp'
+    consent_given: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    consent_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    opted_out: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    user = relationship('User', back_populates='guardians')
+
+    def to_dict(self):
+        from backend.services.otp_service import mask_email, mask_phone_number
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'name': self.name,
+            'relationship': self.relationship_type,
+            'email': self.email,
+            'masked_email': mask_email(self.email) if self.email else None,
+            'phone_number': self.phone_number,
+            'masked_phone': mask_phone_number(self.phone_number) if self.phone_number else '***',
+            'preferred_channel': self.preferred_channel,
+            'consent_given': self.consent_given,
+            'consent_at': self.consent_at.strftime('%Y-%m-%d %H:%M:%S') if self.consent_at else None,
+            'verified': self.verified,
+            'opted_out': self.opted_out,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
+            'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None
+        }
+
+    def __repr__(self):
+        return f'<Guardian {self.name} ({self.preferred_channel}) for User {self.user_id} - Verified: {self.verified}>'
+
+
+class NotificationLog(db.Model):
+    """Audit and delivery status log for all outbound SMS, WhatsApp, and email messages."""
+    __tablename__ = 'notification_log'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    recipient_type: Mapped[str] = mapped_column(String(30), nullable=False) # 'user' or 'guardian'
+    recipient_ref: Mapped[str] = mapped_column(String(120), nullable=False)  # Masked phone/email or reference
+    channel: Mapped[str] = mapped_column(String(20), nullable=False)        # 'sms', 'whatsapp', 'email'
+    template: Mapped[str] = mapped_column(String(100), nullable=False)      # Template ID or name
+    provider_message_id: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String(30), default='queued', nullable=False) # 'queued', 'sent', 'delivered', 'failed'
+    error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'recipient_type': self.recipient_type,
+            'recipient_ref': self.recipient_ref,
+            'channel': self.channel,
+            'template': self.template,
+            'provider_message_id': self.provider_message_id,
+            'status': self.status,
+            'error': self.error,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None
+        }
+
+    def __repr__(self):
+        return f'<NotificationLog {self.id} ({self.channel}) -> {self.recipient_ref} - {self.status}>'
 
 
 class OTPVerification(db.Model):
-    """Database model for storing hashed one-time verification codes."""
+    """Database model for storing legacy hashed one-time verification codes (preserved for backwards compatibility)."""
     __tablename__ = 'otp_verifications'
 
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), nullable=False, index=True)
     otp_hash = db.Column(db.String(256), nullable=False)
-    purpose = db.Column(db.String(20), default='registration', nullable=False) # 'registration' or 'login'
+    purpose = db.Column(db.String(20), default='registration', nullable=False)
     expires_at = db.Column(db.DateTime, nullable=False)
     is_used = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
@@ -363,13 +507,13 @@ class OTPVerification(db.Model):
 
 
 class EmergencyContact(db.Model):
-    """Emergency trusted contact model linked to a user account."""
+    """Emergency trusted contact model linked to a user account (legacy contact model)."""
     __tablename__ = 'emergency_contacts'
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, unique=True, index=True)
     contact_name = db.Column(db.String(120), nullable=False)
-    relationship = db.Column(db.String(50), nullable=False) # Parent, Guardian, Spouse, Sibling, Other Family Member, Close Friend
+    relationship = db.Column(db.String(50), nullable=False)
     email = db.Column(db.String(120), nullable=False)
     phone = db.Column(db.String(20), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -394,29 +538,39 @@ class EmergencyContact(db.Model):
 
 
 class ActivityLog(db.Model):
-    """Audit log recording user actions such as emergency contact updates."""
+    """Audit log recording user actions and security events with tamper-evident SHA-256 hash ledger."""
     __tablename__ = 'activity_logs'
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=True, index=True)
     action = db.Column(db.String(100), nullable=False)
+    action_type = db.Column(db.String(100), nullable=True) # Alias for test compatibility
+    description = db.Column(db.Text, nullable=True)        # Alias for test compatibility
     details = db.Column(db.Text, nullable=True)
     ip_address = db.Column(db.String(50), default='127.0.0.1')
+    prev_hash = db.Column(db.String(64), nullable=True)
+    record_hash = db.Column(db.String(64), nullable=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
 
     user = db.relationship('User', backref=db.backref('activity_logs', lazy='dynamic', cascade='all, delete-orphan'))
+
+    def compute_hash(self, previous_hash='0' * 64):
+        """Generates SHA-256 cryptographic chaining hash for immutable audit ledger."""
+        raw = f"{self.user_id}:{self.action or self.action_type}:{self.details or self.description}:{self.ip_address}:{self.timestamp.isoformat() if self.timestamp else ''}:{previous_hash}"
+        return hashlib.sha256(raw.encode('utf-8')).hexdigest()
 
     def to_dict(self):
         return {
             'id': self.id,
             'user_id': self.user_id,
             'action': self.action,
+            'action_type': self.action_type or self.action,
+            'description': self.description or self.details,
             'details': self.details,
             'ip_address': self.ip_address,
+            'record_hash': self.record_hash,
             'timestamp': self.timestamp.strftime('%Y-%m-%d %H:%M:%S') if self.timestamp else None
         }
 
     def __repr__(self):
-        return f'<ActivityLog {self.action} for User {self.user_id} at {self.timestamp}>'
-
-
+        return f'<ActivityLog {self.action or self.action_type} for User {self.user_id} at {self.timestamp}>'

@@ -56,9 +56,13 @@ export default function Navbar() {
             {isAuthenticated && (
               <NavLink to="/dashboard" className={({isActive}) => 'nav-link' + (isActive ? ' active' : '')} onClick={closeMenu}>Dashboard</NavLink>
             )}
+            {isAuthenticated && (
+              <NavLink to="/guardians" className={({isActive}) => 'nav-link' + (isActive ? ' active' : '')} onClick={closeMenu}>🛡️ Guardians</NavLink>
+            )}
             {isAdmin && (
               <NavLink to="/admin" className={({isActive}) => 'nav-link' + (isActive ? ' active' : '')} onClick={closeMenu}>Admin</NavLink>
             )}
+
           </div>
 
           {/* Actions */}

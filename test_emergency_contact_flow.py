@@ -13,9 +13,11 @@ def test_emergency_contact_feature():
     print("TESTING EMERGENCY TRUSTED CONTACT FEATURE (ADD, EDIT, REMOVE & EMAIL)")
     print("=" * 80)
 
-    app = create_app('development')
+    app = create_app('testing')
     app.config['TESTING'] = True
     app.config['WTF_CSRF_ENABLED'] = False
+    app.config['MAIL_SUPPRESS_SEND'] = True
+    app.config['MESSAGING_PROVIDER'] = 'console'
 
     client = app.test_client()
 

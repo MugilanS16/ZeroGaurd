@@ -5,7 +5,8 @@ from flask import render_template, request, jsonify, session, current_app
 from blueprints.chatbot import chatbot_bp
 from extensions import csrf
 from ai.redact import redact_pii
-from ai.classifier import classify_by_rules
+from ai.classifier import classify_by_rules, classify_incident
+from ai.risk_scorer import calculate_risk_score
 from ai.prompts import CHATBOT_SYSTEM_PROMPT
 
 # Multi-Language Quick Suggestions & Translated Fallback Knowledge
@@ -267,6 +268,38 @@ def chatbot_page():
     """Renders the full-page AI cyber assistant interface."""
     return render_template('chatbot/chatbot.html')
 
+@chatbot_bp.route('/api/ai-crime/analyze', methods=['POST'])
+@csrf.exempt
+def api_ai_crime_analyze():
+    """Analyzes text for cybercrime classification and risk scoring."""
+    data = request.get_json() or {}
+    text = data.get('text', '').strip()
+    if not text:
+        return jsonify({'error': 'No text provided'}), 400
+    
+    clean_text = redact_pii(text)
+    eval_res = classify_incident(clean_text)
+    risk = calculate_risk_score(eval_res.get('crime_type', 'Other'), clean_text)
+    
+    return jsonify({
+        'crime_type': eval_res.get('crime_type', 'Other'),
+        'confidence': eval_res.get('confidence', 0.85),
+        'severity': risk.get('severity', 'medium').lower() if isinstance(risk, dict) else 'medium',
+        'risk_level': eval_res.get('risk_level', 'Medium'),
+        'risk_score': risk.get('score', 65) if isinstance(risk, dict) else (risk if isinstance(risk, int) else 65),
+        'redacted_text': clean_text,
+        'entities': eval_res.get('entities', []),
+        'recommended_action': eval_res.get('recommended_action', 'Preserve evidence and contact 1930.')
+    })
+
+
+@chatbot_bp.route('/api/ai-crime/chat', methods=['POST'])
+@csrf.exempt
+def api_ai_crime_chat():
+    """Alias for /api/chat matching frontend api/aiCrime.js."""
+    return api_chat()
+
+
 @chatbot_bp.route('/api/chat', methods=['POST'])
 @csrf.exempt
 def api_chat():
@@ -331,6 +364,7 @@ def api_chat():
             
             return jsonify({
                 'response': reply_text.replace('\n', '<br/>'),
+                'reply': reply_text,
                 'crime_type': rule_eval['crime_type'],
                 'risk_level': rule_eval['risk_level'],
                 'suggestions': SUGGESTIONS_BY_LANG.get(language, SUGGESTIONS_BY_LANG['en']),
@@ -356,6 +390,7 @@ def api_chat():
                 
                 return jsonify({
                     'response': resp_text,
+                    'reply': resp_text,
                     'crime_type': rule_eval['crime_type'],
                     'risk_level': rule_eval['risk_level'],
                     'suggestions': SUGGESTIONS_BY_LANG.get(language, SUGGESTIONS_BY_LANG['en']),
@@ -389,6 +424,7 @@ def api_chat():
 
     return jsonify({
         'response': generic_resp,
+        'reply': generic_resp,
         'crime_type': rule_eval['crime_type'],
         'risk_level': rule_eval['risk_level'],
         'suggestions': SUGGESTIONS_BY_LANG.get(language, SUGGESTIONS_BY_LANG['en']),

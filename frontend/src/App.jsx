@@ -21,7 +21,9 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const ReportDetail   = lazy(() => import('./pages/ReportDetail'));
 const Awareness      = lazy(() => import('./pages/Awareness'));
 const Emergency      = lazy(() => import('./pages/Emergency'));
+const GuardianSettings = lazy(() => import('./pages/GuardianSettings'));
 const NotFound       = lazy(() => import('./pages/NotFound'));
+
 
 // Chatbot widget (loaded lazily, rendered for all authenticated users)
 const ChatbotWidget  = lazy(() => import('./components/ChatbotWidget'));
@@ -80,6 +82,23 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="/guardians"
+                  element={
+                    <ProtectedRoute>
+                      <GuardianSettings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/guardian-settings"
+                  element={
+                    <ProtectedRoute>
+                      <GuardianSettings />
+                    </ProtectedRoute>
+                  }
+                />
+
                 <Route
                   path="/reports/:id"
                   element={

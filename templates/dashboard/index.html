@@ -35,8 +35,50 @@
     </div>
   </div>
 
-  <!-- Emergency Trusted Contact Reminder Banner -->
-  {% if current_user and not current_user.emergency_contact %}
+  <!-- Emergency Trusted Contact Banner / Status -->
+  {% set active_guardian = guardians[0] if guardians else None %}
+  {% if emergency_contact %}
+    <div class="card" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); padding: 1.15rem 1.5rem; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1.25rem; flex-wrap: wrap;">
+      <div style="display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 280px;">
+        <div style="width: 42px; height: 42px; border-radius: var(--radius-full); background: {% if active_guardian and active_guardian.verified %}rgba(16, 185, 129, 0.15); color: #10b981;{% else %}rgba(245, 158, 11, 0.15); color: var(--warning);{% endif %} display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">
+          🛡️
+        </div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <strong style="color: var(--text-main); font-size: 0.95rem;">Emergency Contact: {{ emergency_contact.contact_name }} ({{ emergency_contact.relationship }})</strong>
+            {% if active_guardian and active_guardian.verified %}
+              <span class="badge badge-success" style="font-size: 0.75rem;">Active & Verified</span>
+            {% else %}
+              <span class="badge badge-warning" style="font-size: 0.75rem;">Confirmation Pending</span>
+            {% endif %}
+          </div>
+          <span style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.2rem; display: block;">
+            {% if active_guardian and active_guardian.verified %}
+              Email alerts are active for <strong>{{ emergency_contact.email }}</strong>.
+            {% else %}
+              Confirmation email sent to <strong>{{ emergency_contact.email }}</strong>. Alerts will activate upon confirmation.
+            {% endif %}
+          </span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+        {% if active_guardian and not active_guardian.verified %}
+          <form method="POST" action="{{ url_for('auth.web_guardian_resend_verification', guardian_id=active_guardian.id) }}" style="margin: 0;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline btn-sm" style="white-space: nowrap;">
+              📨 Resend Confirmation
+            </button>
+          </form>
+        {% endif %}
+        <form method="POST" action="{{ url_for('auth.web_guardian_test_alert') }}" style="margin: 0;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-primary btn-sm" style="white-space: nowrap;">
+            🔔 Send Test Alert
+          </button>
+        </form>
+      </div>
+    </div>
+  {% else %}
     <div class="card" style="background: rgba(245, 158, 11, 0.08); border: 1.5px solid var(--warning); padding: 1.25rem 1.5rem; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1.25rem; flex-wrap: wrap;">
       <div style="display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 280px;">
         <div style="width: 42px; height: 42px; border-radius: var(--radius-full); background: rgba(245, 158, 11, 0.2); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0; color: var(--warning);">
@@ -45,7 +87,7 @@
         <div>
           <strong style="color: var(--text-main); font-size: 0.95rem; display: block;">Emergency Contact Recommendation:</strong>
           <span style="color: var(--text-muted); font-size: 0.88rem; margin-top: 0.15rem; display: block;">
-            You haven't added an Emergency Trusted Contact yet. Add one in Account Security to receive instant automated SMS safety alerts.
+            You haven't added an Emergency Trusted Contact yet. Add one in Account Security to receive automated safety alert emails.
           </span>
         </div>
       </div>

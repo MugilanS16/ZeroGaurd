@@ -97,8 +97,11 @@
             <span style="font-size: 1.2rem;">🛡️</span>
             Emergency Trusted Contact
           </h3>
-          {% if emergency_contact %}
+          {% set active_guardian = guardians[0] if guardians else None %}
+          {% if active_guardian and active_guardian.verified %}
             <span class="badge badge-success">Active & Verified</span>
+          {% elif emergency_contact %}
+            <span class="badge badge-warning">Confirmation Pending</span>
           {% else %}
             <span class="badge badge-warning">Action Recommended</span>
           {% endif %}
@@ -109,6 +112,21 @@
         </p>
 
         {% if emergency_contact %}
+          {% if active_guardian and not active_guardian.verified %}
+            <!-- Unconfirmed Banner -->
+            <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning); border-radius: var(--radius-md); padding: 0.85rem 1rem; margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-main); display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+              <div>
+                <strong>⚠️ Confirmation Pending:</strong> A 24-hour verification request was sent to <strong>{{ emergency_contact.email }}</strong>. Emergency alerts will activate once they confirm.
+              </div>
+              <form method="POST" action="{{ url_for('auth.web_guardian_resend_verification', guardian_id=active_guardian.id) }}" style="margin: 0;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-warning btn-sm" style="font-size: 0.8rem; padding: 0.35rem 0.75rem;">
+                  📨 Resend Confirmation
+                </button>
+              </form>
+            </div>
+          {% endif %}
+
           <!-- Display Existing Contact Details -->
           <div style="background: var(--bg-surface-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.25rem;">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; font-size: 0.9rem;">
@@ -130,12 +148,19 @@
               </div>
             </div>
 
-            <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle);">
+            <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle); flex-wrap: wrap;">
+              <form method="POST" action="{{ url_for('auth.web_guardian_test_alert') }}" style="display: inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-primary btn-sm" id="btn-test-alert">
+                  🔔 Send Test Alert
+                </button>
+              </form>
+
               <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('edit-contact-form').style.display = document.getElementById('edit-contact-form').style.display === 'none' ? 'block' : 'none';">
                 ✏️ Edit Contact Details
               </button>
               
-              <form method="POST" action="{{ url_for('auth.delete_emergency_contact') }}" onsubmit="return confirm('Are you sure you want to remove your emergency contact?');">
+              <form method="POST" action="{{ url_for('auth.delete_emergency_contact') }}" onsubmit="return confirm('Are you sure you want to remove your emergency contact?');" style="display: inline;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-danger btn-sm">
                   🗑️ Remove Contact

@@ -20,6 +20,8 @@ from utils.upload import save_evidence_file, purge_evidence_files, get_upload_di
 from utils.validator import is_allowed_file, validate_incident_text
 from utils.mailer import send_submission_notification
 from pdf.report_generator import generate_complaint_pdf
+from backend.services.notify_service import NotificationService
+
 
 def get_draft():
     """Retrieves or initializes wizard draft in session."""
@@ -431,6 +433,24 @@ def report_submit():
             pdf_path=pdf_path
         )
 
+    # Dispatch async guardian notifications (Sanitized: only Ref ID and Status)
+    if user:
+        # Check if high-risk or Golden Hour alert applies
+        if complaint.risk_level in ('Critical', 'High') or (complaint.claimed_amount and complaint.claimed_amount > 10000):
+            NotificationService.notify_guardians_async(
+                user_id=user.id,
+                event_type='high_risk_alert',
+                case_ref=ref_number,
+                context={'status': complaint.status, 'new_status': complaint.status, 'crime_type': complaint.crime_type}
+            )
+        else:
+            NotificationService.notify_guardians_async(
+                user_id=user.id,
+                event_type='complaint_submitted',
+                case_ref=ref_number,
+                context={'status': complaint.status, 'new_status': complaint.status, 'crime_type': complaint.crime_type}
+            )
+
     # Clear draft from session
     session.pop('report_draft', None)
 
@@ -443,7 +463,6 @@ def download_pdf(reference_number):
     """Allows downloading the official complaint PDF."""
     pdf_path = Path(current_app.root_path) / 'static' / 'generated_pdfs' / f"{reference_number}.pdf"
     if not pdf_path.exists():
-        # Check if complaint exists in DB and rebuild if necessary
         complaint = Complaint.query.filter_by(reference_number=reference_number).first()
         if not complaint:
             abort(404)
@@ -466,4 +485,87 @@ def download_pdf(reference_number):
         generate_complaint_pdf(complaint_data, str(pdf_path))
 
     return send_file(pdf_path, as_attachment=True, download_name=f"{reference_number}_Complaint.pdf")
+
+
+# =====================================================================
+# JSON REST APIS FOR REPORTS
+# =====================================================================
+
+@report_bp.route('/api/reports', methods=['POST'])
+@login_required
+def api_submit_report():
+    """JSON Report creation endpoint."""
+    user = User.query.get(session['user_id'])
+    data = request.get_json() or {}
+
+    desc = data.get('description', '').strip()
+    crime_type = data.get('crime_type', 'UPI Fraud')
+    severity = data.get('severity', 'Medium')
+    answers = data.get('answers', [])
+    guidance = data.get('guidance', [])
+
+    year = datetime.now().year
+    rand_num = random.randint(10000, 99999)
+    ref_number = f"CC-{year}-{rand_num}"
+    while Complaint.query.filter_by(reference_number=ref_number).first():
+        rand_num = random.randint(10000, 99999)
+        ref_number = f"CC-{year}-{rand_num}"
+
+    risk_map = {'low': 25, 'medium': 50, 'high': 75, 'critical': 90}
+    risk_score = risk_map.get(severity.lower(), 50)
+    risk_level = severity.capitalize()
+
+    complaint = Complaint(
+        user_id=user.id if user else None,
+        reference_number=ref_number,
+        crime_type=crime_type,
+        risk_level=risk_level,
+        risk_score=risk_score,
+        language='en',
+        description=desc,
+        original_description=desc,
+        answers=answers if isinstance(answers, dict) else {'answers': answers},
+        guidance=guidance,
+        evidence_meta=[],
+        pdf_filename=f"{ref_number}.pdf",
+        status='Pending',
+        created_at=datetime.now(timezone.utc)
+    )
+    db.session.add(complaint)
+    db.session.commit()
+
+    if user:
+        from blueprints.auth.routes import log_activity
+        log_activity(user.id, 'report_submitted', f"Complaint registered with ref #{ref_number}", request)
+        NotificationService.notify_guardians_async(
+            user_id=user.id,
+            event_type='complaint_submitted',
+            case_ref=ref_number,
+            context={'status': 'Pending', 'new_status': 'Pending'}
+        )
+
+    return jsonify({
+        'success': True,
+        'report': complaint.to_dict(),
+        'reference_number': ref_number
+    }), 201
+
+
+@report_bp.route('/api/reports/mine', methods=['GET'])
+@login_required
+def api_my_reports():
+    """Returns citizen's own filed reports."""
+    user_id = session['user_id']
+    complaints = Complaint.query.filter_by(user_id=user_id).order_by(Complaint.created_at.desc()).all()
+    return jsonify({
+        'success': True,
+        'reports': [c.to_dict() for c in complaints]
+    }), 200
+
+
+@report_bp.route('/api/home', methods=['GET'])
+def api_home():
+    """Public health/info check."""
+    return jsonify({'status': 'ok', 'app': 'ZeroGuard AI', 'version': '2.0.0'}), 200
+
 

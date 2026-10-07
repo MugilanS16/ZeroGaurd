@@ -1,14 +1,13 @@
 import os
 from pathlib import Path
-from flask import Flask, session, g
-from flask_wtf.csrf import CSRFProtect
-from flask_mail import Mail
+from flask import Flask, session, g, redirect, url_for, request, jsonify
+from flask_cors import CORS
+from flask_jwt_extended import JWTManager
 
 from config import config_by_name
 from database import db
-from database.models import User
-
-from extensions import csrf, mail
+from database.models import User, Complaint, OTPChallenge, Guardian, NotificationLog, ActivityLog
+from extensions import csrf, mail, limiter, migrate
 
 def create_app(config_name=None):
     """Application factory for ZeroGuard AI."""
@@ -30,10 +29,13 @@ def create_app(config_name=None):
     db.init_app(app)
     csrf.init_app(app)
     mail.init_app(app)
+    limiter.init_app(app)
+    migrate.init_app(app, db)
+    CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
     
-    # Exclude specific API endpoints from CSRF if needed (e.g. public quick check API)
     # Register blueprints
     from blueprints.auth import auth_bp
+    from blueprints.auth.routes import api_bp
     from blueprints.report import report_bp
     from blueprints.dashboard import dashboard_bp
     from blueprints.admin import admin_bp
@@ -42,10 +44,16 @@ def create_app(config_name=None):
     from blueprints.awareness import awareness_bp
     from blueprints.fraud_checker import fraud_checker_bp
     
-    # Exempt public JSON scan endpoint
+    # Exempt all public/REST JSON API endpoints and webhooks from form CSRF
+    csrf.exempt(auth_bp)
+    csrf.exempt(api_bp)
     csrf.exempt(fraud_checker_bp)
+    csrf.exempt(report_bp)
+    csrf.exempt(admin_bp)
+    csrf.exempt(chatbot_bp)
 
     app.register_blueprint(auth_bp)
+    app.register_blueprint(api_bp)
     app.register_blueprint(report_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(admin_bp)
@@ -54,9 +62,8 @@ def create_app(config_name=None):
     app.register_blueprint(awareness_bp)
     app.register_blueprint(fraud_checker_bp)
 
-    # Top-level URL routing aliases for citizen convenience
-    from flask import redirect, url_for, request
 
+    # Top-level URL routing aliases for citizen convenience
     @app.route('/login')
     def login_alias():
         return redirect(url_for('auth.login', **request.args))
@@ -90,11 +97,10 @@ def create_app(config_name=None):
             'current_user': current_user,
             'is_logged_in': bool(user_id),
             'is_admin': bool(current_user and current_user.is_admin),
-            'app_title': 'ZeroGuard AI: Simplifying Cybercrime Reporting with Instant AI Assistance',
+            'app_title': 'ZeroGuard AI: Cybercrime Reporting & Instant Guardian Alert Platform',
             'emergency_helplines': EMERGENCY_HELPLINES
         }
 
-        
     # Custom template filters
     @app.template_filter('datetime')
     def format_datetime(value, format='%d %b %Y, %I:%M %p'):
@@ -133,7 +139,47 @@ def create_app(config_name=None):
         
     return app
 
+
+def seed_demo_users():
+    """Seeds default demo citizen and admin users if missing."""
+    with app.app_context():
+        # Citizen
+        citizen = User.query.filter_by(email="citizen@cybercrime.gov.in").first()
+        if not citizen:
+            citizen = User(
+                fullname="Aarav Sharma",
+                email="citizen@cybercrime.gov.in",
+                phone="+919876543210",
+                phone_number="+919876543210",
+                phone_verified=True,
+                preferred_otp_channel="sms",
+                role="citizen",
+                is_verified=True
+            )
+            citizen.set_password("CitizenPass123!")
+            db.session.add(citizen)
+
+        # Admin
+        admin = User.query.filter_by(email="admin@cybercrime.gov.in").first()
+        if not admin:
+            admin = User(
+                fullname="Officer Vikram Singh",
+                email="admin@cybercrime.gov.in",
+                phone="+919876500000",
+                phone_number="+919876500000",
+                phone_verified=True,
+                preferred_otp_channel="whatsapp",
+                role="admin",
+                is_verified=True
+            )
+            admin.set_password("AdminPass123!")
+            db.session.add(admin)
+
+        db.session.commit()
+
+
 app = create_app()
 
 if __name__ == '__main__':
+    seed_demo_users()
     app.run(host='0.0.0.0', port=5000, debug=True)

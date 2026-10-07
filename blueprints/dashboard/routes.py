@@ -1,7 +1,7 @@
 from flask import render_template, session, redirect, url_for, request
 from blueprints.dashboard import dashboard_bp
 from blueprints.auth.routes import login_required
-from database.models import User, Complaint
+from database.models import User, Complaint, EmergencyContact, Guardian
 
 @dashboard_bp.route('/')
 @login_required
@@ -28,6 +28,9 @@ def index():
     in_review_count = sum(1 for c in all_user_complaints if c.status in ['In Review', 'In_Review'])
     resolved_count = sum(1 for c in all_user_complaints if c.status == 'Resolved')
 
+    emergency_contact = EmergencyContact.query.filter_by(user_id=user.id).first()
+    guardians = Guardian.query.filter_by(user_id=user.id).order_by(Guardian.created_at.desc()).all()
+
     return render_template(
         'dashboard/index.html',
         user=user,
@@ -36,5 +39,7 @@ def index():
         pending_count=pending_count,
         in_review_count=in_review_count,
         resolved_count=resolved_count,
-        status_filter=status_filter
+        status_filter=status_filter,
+        emergency_contact=emergency_contact,
+        guardians=guardians
     )

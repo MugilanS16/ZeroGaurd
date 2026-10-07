@@ -71,9 +71,7 @@ class RegisterForm(FlaskForm):
     submit = SubmitField('Continue to OTP Verification')
 
     def validate_email(self, field):
-        user = User.query.filter_by(email=field.data.lower().strip()).first()
-        if user and user.is_verified:
-            raise ValidationError('An account with this email already exists. Please sign in.')
+        pass
 
     def validate_trusted_contact_email(self, field):
         if self.email.data and field.data.lower().strip() == self.email.data.lower().strip():

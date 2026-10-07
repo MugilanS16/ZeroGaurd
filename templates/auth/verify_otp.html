@@ -1,44 +1,61 @@
 {% extends "base.html" %}
 
-{% block title %}Verify OTP - ZeroGuard AI{% endblock %}
+{% block title %}Verify Code - ZeroGuard AI{% endblock %}
 
 {% block content %}
 <div class="container container-narrow animate-fade-in">
-  <div class="card card-elevated" style="max-width: 480px; margin: 2rem auto; text-align: center;">
+  <div class="card card-elevated" style="max-width: 480px; margin: 2.5rem auto; text-align: center; padding: 2.25rem 2rem;">
     
-    <div class="brand-icon" style="margin: 0 auto 1.25rem; width: 52px; height: 52px;">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+    <div class="brand-icon" style="margin: 0 auto 1.25rem; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; background: rgba(59, 130, 246, 0.1); border-radius: 14px; border: 1px solid rgba(59, 130, 246, 0.25);">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
       </svg>
     </div>
 
-    <h2>Verify Email Address</h2>
-    <p style="font-size: 0.9rem; margin-top: 0.35rem; color: var(--text-muted);">
-      A 6-digit security code has been sent via email to:
+    <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-heading); margin-bottom: 0.5rem;">
+      Security Verification
+    </h2>
+
+    <p style="font-size: 0.92rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0.25rem;">
+      A 6-digit security code has been dispatched to:
     </p>
-    <div style="font-weight: 600; font-size: 1.05rem; margin: 0.5rem 0 1.25rem; color: var(--text-heading);">
-      {{ target_email or session.get('verify_email', 'your registered email') }}
+
+    <div style="font-weight: 700; font-size: 1.1rem; color: var(--text-heading); letter-spacing: 1px; margin-bottom: 1.5rem;">
+      {{ masked_phone or target_email or session.get('verify_email', 'your registered mobile/email') }}
     </div>
 
-    <form method="POST" action="{{ url_for('auth.verify_otp') }}">
-      {{ form.hidden_tag() }}
+    <form method="POST" action="{{ url_for('auth.verify_2fa') }}">
+      {% if form %}
+        {{ form.hidden_tag() }}
+      {% else %}
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% endif %}
 
       <div class="form-group" style="margin-bottom: 1.5rem;">
-        <label class="form-label" for="otp-input" style="font-size: 0.95rem;">Enter 6-Digit OTP</label>
-        {{ form.otp(class="form-control" + (" is-invalid" if form.otp.errors else ""), id="otp-input", placeholder="------", style="font-size: 1.75rem; letter-spacing: 12px; text-align: center; font-weight: 700; font-family: monospace; max-width: 280px; margin: 0 auto;", maxlength="6", autofocus=True) }}
-        {% for error in form.otp.errors %}
-          <div class="form-error">{{ error }}</div>
-        {% endfor %}
+        <label class="form-label" for="otp-input" style="font-size: 0.88rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">
+          Enter 6-Digit OTP
+        </label>
+        {% if form and form.otp %}
+          {{ form.otp(class="form-control" + (" is-invalid" if form.otp.errors else ""), id="otp-input", placeholder="••••••", style="font-size: 2rem; letter-spacing: 14px; text-align: center; font-weight: 800; font-family: 'Courier New', monospace; max-width: 320px; margin: 0 auto; height: 56px; border-radius: 12px;", maxlength="6", autofocus=True, autocomplete="one-time-code") }}
+          {% for error in form.otp.errors %}
+            <div class="form-error" style="color: #ef4444; font-size: 0.85rem; margin-top: 0.5rem;">{{ error }}</div>
+          {% endfor %}
+        {% else %}
+          <input type="text" name="otp" id="otp-input" class="form-control" placeholder="••••••" style="font-size: 2rem; letter-spacing: 14px; text-align: center; font-weight: 800; font-family: 'Courier New', monospace; max-width: 320px; margin: 0 auto; height: 56px; border-radius: 12px;" maxlength="6" autofocus required autocomplete="one-time-code">
+        {% endif %}
       </div>
 
-      {{ form.submit(class="btn btn-primary btn-block btn-lg") }}
+      <button type="submit" class="btn btn-primary btn-block btn-lg" style="height: 48px; font-weight: 600; font-size: 1rem; border-radius: 10px;">
+        Verify Code & Continue &rarr;
+      </button>
     </form>
 
-    <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; font-size: 0.88rem;">
-      <span style="color: var(--text-muted);">Didn't receive the email code?</span>
+    <div style="margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; font-size: 0.88rem;">
+      <span style="color: var(--text-muted);">Didn't receive the code?</span>
       <form method="POST" action="{{ url_for('auth.resend_otp') }}" style="display: inline;">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn btn-outline btn-sm">Resend OTP</button>
+        <button type="submit" class="btn btn-outline btn-sm" style="border-radius: 8px;">Resend OTP</button>
       </form>
     </div>
 
