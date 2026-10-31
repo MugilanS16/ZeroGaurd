@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from flask import Flask, session, g, redirect, url_for, request, jsonify
+from flask import Flask, session, g, redirect, url_for, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 
@@ -17,6 +17,17 @@ def create_app(config_name=None):
     app = Flask(__name__)
     app_config = config_by_name.get(config_name, config_by_name['default'])
     app.config.from_object(app_config)
+
+    # --- Serve React frontend build in production ---
+    react_build_dir = Path(__file__).resolve().parent / 'frontend' / 'dist'
+    if react_build_dir.is_dir() and config_name == 'production':
+        @app.route('/app/')
+        @app.route('/app/<path:path>')
+        def serve_react(path=''):
+            file_path = react_build_dir / path
+            if path and file_path.is_file():
+                return send_from_directory(str(react_build_dir), path)
+            return send_from_directory(str(react_build_dir), 'index.html')
     
     # Ensure directories exist
     upload_dir = Path(app.config['UPLOAD_FOLDER'])
