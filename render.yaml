@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: zeroguard-ai
+    runtime: python
+    plan: free
+    buildCommand: |
+      pip install -r requirements.txt
+      cd frontend && npm install && npm run build
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: MESSAGING_PROVIDER
+        value: console
