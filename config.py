@@ -8,11 +8,21 @@ load_dotenv(BASE_DIR / '.env')
 class Config:
     """Base application configuration for ZeroGuard AI."""
     SECRET_KEY = os.environ.get('SECRET_KEY', 'zeroguard-ai-default-dev-secret-key-2026')
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URI', f'sqlite:///{BASE_DIR / "zeroguard.db"}')
+
+    # Railway provides DATABASE_URL with 'postgres://' but SQLAlchemy needs 'postgresql://'
+    _raw_db_uri = os.environ.get('DATABASE_URL', os.environ.get('DATABASE_URI', f'sqlite:///{BASE_DIR / "zeroguard.db"}'))
+    if _raw_db_uri and _raw_db_uri.startswith('postgres://'):
+        _raw_db_uri = _raw_db_uri.replace('postgres://', 'postgresql://', 1)
+    SQLALCHEMY_DATABASE_URI = _raw_db_uri
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'connect_args': {'timeout': 30}
-    }
+
+    @property
+    def SQLALCHEMY_ENGINE_OPTIONS(self):
+        """Return engine options appropriate for the database backend."""
+        uri = self.SQLALCHEMY_DATABASE_URI or ''
+        if uri.startswith('sqlite'):
+            return {'connect_args': {'timeout': 30}}
+        return {}
     
     # Upload & Session configuration
     UPLOAD_FOLDER = BASE_DIR / 'session_uploads'
