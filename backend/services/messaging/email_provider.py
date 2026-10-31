@@ -6,6 +6,7 @@ with clean HTML and plain-text formatting.
 import smtplib
 import socket
 import logging
+from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Optional, Dict, Any
@@ -30,11 +31,13 @@ class EmailProvider(MessageProvider):
         html_body: Optional[str] = None,
         plain_text_body: Optional[str] = None,
         expiry_seconds: int = 300,
-        purpose: str = '2fa_login'
+        purpose: str = '2fa_login',
+        attachment_path: Optional[str] = None,
+        attachment_filename: Optional[str] = None
     ) -> MessageResult:
         """
         Sends HTML + plain-text email via SMTP with STARTTLS (port 587, 10s timeout).
-        Can be used for OTP verification codes or general alerts.
+        Supports optional file attachments (e.g., ReportLab PDFs under 5MB).
         """
         if not to_email or '@' not in to_email:
             return MessageResult(
@@ -143,9 +146,26 @@ ZeroGuard AI Security Team
 </html>
 """
 
+        # Check attachment validity and size (under 5MB)
+        attachment_data = None
+        final_attachment_name = attachment_filename
+        if attachment_path:
+            import os
+            if os.path.exists(attachment_path):
+                file_size = os.path.getsize(attachment_path)
+                if file_size <= 5 * 1024 * 1024:
+                    with open(attachment_path, 'rb') as af:
+                        attachment_data = af.read()
+                    if not final_attachment_name:
+                        final_attachment_name = os.path.basename(attachment_path)
+                else:
+                    logger.warning(f"[EmailProvider] Attachment {attachment_path} exceeds 5MB limit ({file_size} bytes). Suppressing.")
+            else:
+                logger.warning(f"[EmailProvider] Attachment path not found: {attachment_path}")
+
         if suppress_send or not username or not password:
             if is_debug:
-                logger.info(f"\n" + "="*65 + f"\n[CONSOLE EMAIL DISPATCH - {masked_email}]\nSubject: {subject}\n" + "="*65)
+                logger.info(f"\n" + "="*65 + f"\n[CONSOLE EMAIL DISPATCH - {masked_email}]\nSubject: {subject}\nAttachment: {final_attachment_name if attachment_data else 'None'}\n" + "="*65)
             else:
                 logger.info(f"[EmailProvider] Simulated email dispatch to {masked_email} (MAIL_SUPPRESS_SEND=True or credentials missing)")
 
@@ -157,12 +177,29 @@ ZeroGuard AI Security Team
                 status='sent'
             )
 
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = subject
-        msg['From'] = sender
-        msg['To'] = to_email
-        msg.attach(MIMEText(plain_text_body, 'plain'))
-        msg.attach(MIMEText(html_body, 'html'))
+        from email.mime.application import MIMEApplication
+
+        if attachment_data:
+            msg = MIMEMultipart('mixed')
+            msg['Subject'] = subject
+            msg['From'] = sender
+            msg['To'] = to_email
+
+            body_part = MIMEMultipart('alternative')
+            body_part.attach(MIMEText(plain_text_body, 'plain'))
+            body_part.attach(MIMEText(html_body, 'html'))
+            msg.attach(body_part)
+
+            pdf_part = MIMEApplication(attachment_data, _subtype="pdf")
+            pdf_part.add_header('Content-Disposition', 'attachment', filename=final_attachment_name or "ZeroGuard_Report.pdf")
+            msg.attach(pdf_part)
+        else:
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = subject
+            msg['From'] = sender
+            msg['To'] = to_email
+            msg.attach(MIMEText(plain_text_body, 'plain'))
+            msg.attach(MIMEText(html_body, 'html'))
 
         # SMTP Dispatch with STARTTLS & 10s Timeout
         try:
@@ -208,8 +245,152 @@ ZeroGuard AI Security Team
                 provider=self.name,
                 channel='email',
                 status='failed',
-                error="Unable to deliver verification code. Please try again."
+                error="Unable to deliver email message. Please try again."
             )
+
+    def send_citizen_complaint_report(
+        self,
+        to_email: str,
+        citizen_name: str,
+        ref_number: str,
+        crime_type: str,
+        risk_level: str,
+        date_str: str,
+        summary: str,
+        pdf_path: Optional[str] = None,
+        tracking_url: Optional[str] = None
+    ) -> MessageResult:
+        """
+        Dispatches official complaint report confirmation email to the filing citizen with attached PDF.
+        """
+        subject = f"Your ZeroGuard AI Complaint Report - {ref_number}"
+        track_link = tracking_url or f"/track?ref={ref_number}"
+        short_summary = summary[:300] + ("..." if len(summary) > 300 else "") if summary else "Cyber incident reported via ZeroGuard AI."
+
+        plain_text = f"""Dear {citizen_name},
+
+Thank you for reporting your incident via ZeroGuard AI. Your official cybercrime complaint report has been successfully generated and recorded.
+
+============================================================
+COMPLAINT REFERENCE NUMBER: {ref_number}
+OFFENSE CATEGORY: {crime_type}
+RISK PRIORITY: {risk_level}
+DATE & TIME FILED: {date_str}
+============================================================
+
+INCIDENT SUMMARY:
+{short_summary}
+
+NEXT STEPS & CRITICAL GUIDANCE:
+1. Urgent Financial Fraud Helpline: If this involves unauthorized money transfers, dial 1930 immediately within the Golden Hour to enable inter-bank lien/freeze requests.
+2. Evidence Preservation: Retain all original SMS, transaction receipts, call recordings, and chat screenshots.
+3. Track Investigation Status: Monitor live updates using your reference code at: {track_link}
+
+An official copy of your verified PDF Complaint Letter (ZeroGuard_Report_{ref_number}.pdf) is attached to this email.
+
+Stay Safe,
+ZeroGuard AI Incident Assistance & Cyber Response Team
+National Cybercrime Preservation Initiative
+"""
+
+        html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{subject}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #0b1120; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f1f5f9;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #0b1120; padding: 30px 15px;">
+    <tr>
+      <td align="center">
+        <table width="100%" max-width="580" border="0" cellspacing="0" cellpadding="0" style="max-width: 580px; background-color: #1e293b; border-radius: 16px; border: 1px solid #334155; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 25px 30px 20px; text-align: center; background: linear-gradient(180deg, rgba(37,99,235,0.2) 0%, rgba(30,41,59,0) 100%);">
+              <div style="font-size: 22px; font-weight: 800; color: #60a5fa; letter-spacing: -0.5px;">
+                🛡️ ZeroGuard <span style="color: #38bdf8; font-size: 13px; background: rgba(56,189,248,0.15); padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(56,189,248,0.3);">AI</span>
+              </div>
+              <h2 style="font-size: 19px; font-weight: 700; color: #ffffff; margin: 12px 0 4px;">Cybercrime Complaint Report Registered</h2>
+              <p style="font-size: 13px; color: #94a3b8; margin: 0;">Official Dossier & Evidence Record</p>
+            </td>
+          </tr>
+          <!-- Body Content -->
+          <tr>
+            <td style="padding: 20px 30px;">
+              <p style="font-size: 14px; color: #e2e8f0; line-height: 1.5; margin: 0 0 16px;">
+                Dear <strong>{citizen_name}</strong>,
+              </p>
+              <p style="font-size: 14px; color: #cbd5e1; line-height: 1.5; margin: 0 0 20px;">
+                Your official Cybercrime Incident Report has been compiled and registered with reference code <strong>{ref_number}</strong>. The full report PDF is attached to this email.
+              </p>
+
+              <!-- Complaint Summary Box -->
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #0f172a; border: 1px solid #334155; border-radius: 10px; margin-bottom: 20px; overflow: hidden;">
+                <tr>
+                  <td style="padding: 12px 16px; border-bottom: 1px solid #1e293b; font-size: 13px; color: #94a3b8; width: 40%;">Reference Number:</td>
+                  <td style="padding: 12px 16px; border-bottom: 1px solid #1e293b; font-size: 14px; font-weight: 700; color: #38bdf8; font-family: monospace;">{ref_number}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px 16px; border-bottom: 1px solid #1e293b; font-size: 13px; color: #94a3b8;">Offense Category:</td>
+                  <td style="padding: 12px 16px; border-bottom: 1px solid #1e293b; font-size: 13px; font-weight: 600; color: #f8fafc;">{crime_type}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px 16px; border-bottom: 1px solid #1e293b; font-size: 13px; color: #94a3b8;">Risk Priority:</td>
+                  <td style="padding: 12px 16px; border-bottom: 1px solid #1e293b; font-size: 13px; font-weight: 600; color: #f59e0b;">{risk_level}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px 16px; font-size: 13px; color: #94a3b8;">Filing Date & Time:</td>
+                  <td style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #94a3b8;">{date_str}</td>
+                </tr>
+              </table>
+
+              <!-- Next Steps Box -->
+              <div style="background-color: #0f172a; border-left: 4px solid #3b82f6; padding: 14px 16px; border-radius: 6px; margin-bottom: 20px;">
+                <h4 style="margin: 0 0 8px 0; font-size: 13px; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.5px;">Recommended Next Steps</h4>
+                <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: #cbd5e1; line-height: 1.6;">
+                  <li><strong>Financial Cyber Fraud:</strong> Dial National Cyber Helpline <strong>1930</strong> immediately within the Golden Hour window.</li>
+                  <li><strong>Evidence Preservation:</strong> Retain all original payment SMS, WhatsApp transcripts, emails, and transaction IDs.</li>
+                  <li><strong>Track Progress:</strong> View real-time investigation milestones anytime via our tracker.</li>
+                </ul>
+              </div>
+
+              <!-- Action Button -->
+              <div style="text-align: center; margin: 25px 0 15px;">
+                <a href="{track_link}" style="background-color: #2563eb; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-block; box-shadow: 0 4px 12px rgba(37,99,235,0.4);">
+                  Track Complaint Online &rarr;
+                </a>
+              </div>
+
+              <p style="font-size: 12px; color: #64748b; text-align: center; margin: 15px 0 0;">
+                📎 <em>Attachment: ZeroGuard_Report_{ref_number}.pdf is attached to this email.</em>
+              </p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 18px 30px; background-color: #0f172a; border-top: 1px solid #334155; text-align: center;">
+              <p style="font-size: 12px; color: #64748b; margin: 0;">
+                National Cybercrime Reporting & Preservation Initiative • ZeroGuard AI
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+"""
+        return self.send_email(
+            to_email=to_email,
+            subject=subject,
+            html_body=html_content,
+            plain_text_body=plain_text,
+            purpose='complaint_submission_citizen',
+            attachment_path=pdf_path,
+            attachment_filename=f"ZeroGuard_Report_{ref_number}.pdf"
+        )
 
     def send_guardian_alert(
         self,
@@ -218,15 +399,21 @@ ZeroGuard AI Security Team
         ward_name: str,
         case_ref: str,
         event_type: str,
-        context: Dict[str, Any]
+        context: Dict[str, Any],
+        attach_pdf: bool = False,
+        pdf_path: Optional[str] = None
     ) -> MessageResult:
         """
         Dispatches a sanitized incident alert to a verified guardian's email address.
-        Guarantees strict privacy: NO victim narrative, NO claimed financial amounts.
+        Guarantees strict privacy: NO victim narrative, NO phone numbers, NO UPI/bank details, NO evidence files.
+        Optionally attaches PDF only when explicitly approved and crime category is non-sensitive.
         """
         status = context.get('status', 'Submitted')
         new_status = context.get('new_status', status)
         short_note = context.get('short_note', 'Investigation in progress')[:120]
+        crime_type = context.get('crime_type', 'Cyber Incident')
+        date_str = context.get('date_str') or datetime.now().strftime('%d %B %Y')
+        ward_first_name = (ward_name or 'Ward').split()[0]
 
         is_high_risk = (event_type == 'high_risk_alert')
         is_test = (event_type == 'test_alert')
@@ -238,23 +425,30 @@ ZeroGuard AI Security Team
         elif is_high_risk:
             subject = f"🚨 URGENT: High-Risk Incident Alert for Case {case_ref} - ZeroGuard AI"
             header_title = "Urgent High-Risk Incident Alert"
-            status_desc = f"A high-priority incident (Case Ref: {case_ref}) was reported by {ward_name}. The Golden Hour window is active."
+            status_desc = f"A high-priority incident (Case Ref: {case_ref}) was reported by {ward_first_name}. The Golden Hour window is active."
         else:
             subject = f"🛡️ ZeroGuard AI Incident Notification: Case {case_ref} ({new_status})"
-            header_title = "Incident Status Update"
-            status_desc = f"An update was posted for Case Ref: {case_ref} submitted by {ward_name}."
+            header_title = "Incident Filing Notification"
+            status_desc = f"A cybercrime complaint (Case Ref: {case_ref}) was recently registered by {ward_first_name}."
 
         plain_text = f"""Dear {guardian_name},
 
 {status_desc}
 
-Case Reference: {case_ref}
-Current Status: {new_status}
-Update Note: {short_note}
+============================================================
+CITIZEN WARD: {ward_name}
+CASE REFERENCE: {case_ref}
+OFFENSE CATEGORY: {crime_type}
+DATE FILED: {date_str}
+CURRENT STATUS: {new_status}
+============================================================
 
-Privacy & Security Notice:
-To protect sensitive evidence, specific complaint narratives and transaction data are not transmitted over email.
-Please check in with {ward_name} or assist them in reaching official helpline 1930 if urgent financial intervention is needed.
+PRIVACY & SECURITY NOTICE:
+To protect citizen privacy and sensitive evidence, personal phone numbers, UPI IDs, bank accounts, and raw case narratives are not transmitted over guardian notifications.
+
+HELP & ASSISTANCE GUIDANCE:
+Please check in with {ward_first_name}. If financial theft occurred, ensure the National Cybercrime Helpline 1930 is dialed immediately.
+{f"A verified copy of the complaint report (ZeroGuard_Report_{case_ref}.pdf) has been included as requested by {ward_first_name}." if (attach_pdf and pdf_path) else ""}
 
 Stay Safe,
 ZeroGuard AI National Incident Coordination Team
@@ -303,6 +497,14 @@ ZeroGuard AI National Incident Coordination Team
                   <td style="padding: 12px 16px; border-bottom: 1px solid #1e293b; font-size: 13px; font-weight: 700; color: #38bdf8; font-family: monospace;">{case_ref}</td>
                 </tr>
                 <tr>
+                  <td style="padding: 12px 16px; border-bottom: 1px solid #1e293b; font-size: 13px; color: #94a3b8;">Offense Category:</td>
+                  <td style="padding: 12px 16px; border-bottom: 1px solid #1e293b; font-size: 13px; font-weight: 600; color: #f8fafc;">{crime_type}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px 16px; border-bottom: 1px solid #1e293b; font-size: 13px; color: #94a3b8;">Date Reported:</td>
+                  <td style="padding: 12px 16px; border-bottom: 1px solid #1e293b; font-size: 13px; font-weight: 600; color: #94a3b8;">{date_str}</td>
+                </tr>
+                <tr>
                   <td style="padding: 12px 16px; font-size: 13px; color: #94a3b8;">Status:</td>
                   <td style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #34d399;">{new_status}</td>
                 </tr>
@@ -311,11 +513,18 @@ ZeroGuard AI National Incident Coordination Team
               <!-- Privacy Notice -->
               <div style="background-color: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; padding: 12px 14px; border-radius: 6px; margin-bottom: 15px;">
                 <p style="font-size: 12px; color: #93c5fd; margin: 0; line-height: 1.4;">
-                  🔒 <strong>Privacy Protection:</strong> Case narratives and sensitive financial details are strictly redacted to safeguard citizen data.
+                  🔒 <strong>Privacy Protection:</strong> Case narratives, bank details, and personal phone numbers are strictly redacted to safeguard citizen data.
                 </p>
               </div>
 
-              {'<div style="background-color: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; padding: 12px 14px; border-radius: 6px; margin-bottom: 15px;"><p style="font-size: 12px; color: #fca5a5; margin: 0; line-height: 1.4;">🚨 <strong>Urgent Action:</strong> If money was stolen, ensure the National Cybercrime Helpline <strong>1930</strong> is dialed immediately within the first 2 hours.</p></div>' if is_high_risk else ''}
+              <!-- Helpline Guidance -->
+              <div style="background-color: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; padding: 12px 14px; border-radius: 6px; margin-bottom: 15px;">
+                <p style="font-size: 12px; color: #fca5a5; margin: 0; line-height: 1.4;">
+                  📞 <strong>Helpline Assistance:</strong> If financial theft occurred or urgent intervention is needed, ensure the National Cybercrime Helpline <strong>1930</strong> is dialed immediately.
+                </p>
+              </div>
+
+              {f'<p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 15px 0 0;">📎 <em>Attached Report: ZeroGuard_Report_{case_ref}.pdf</em></p>' if (attach_pdf and pdf_path) else ''}
             </td>
           </tr>
           <!-- Footer -->
@@ -337,7 +546,10 @@ ZeroGuard AI National Incident Coordination Team
             to_email=to_email,
             subject=subject,
             html_body=html_content,
-            plain_text_body=plain_text
+            plain_text_body=plain_text,
+            purpose='guardian_incident_alert',
+            attachment_path=pdf_path if attach_pdf else None,
+            attachment_filename=f"ZeroGuard_Report_{case_ref}.pdf" if (attach_pdf and pdf_path) else None
         )
 
     def send_guardian_verification(

@@ -19,8 +19,128 @@ from backend.services.otp_service import mask_phone_number, mask_email, record_a
 logger = logging.getLogger(__name__)
 
 
+SENSITIVE_CRIME_CATEGORIES = {
+    'sextortion', 'deepfake', 'child sexual abuse material', 'csam', 
+    'child safety', 'harassment', 'cyberbullying', 'blackmail', 
+    'intimate imagery', 'non-consensual', 'online harassment',
+    'cyber stalking', 'stalking'
+}
+
+
+def is_sensitive_crime_category(crime_type: Optional[str]) -> bool:
+    """Returns True if the crime category involves sensitive personal/intimate safety."""
+    if not crime_type:
+        return False
+    clow = str(crime_type).lower()
+    return any(cat in clow for cat in SENSITIVE_CRIME_CATEGORIES)
+
+
 class NotificationService:
-    """Dispatches asynchronous notifications to verified guardians with retry and backoff."""
+    """Dispatches asynchronous notifications to verified guardians and citizens with retry and backoff."""
+
+    @classmethod
+    def send_citizen_submission_async(
+        cls,
+        user_id: Optional[int],
+        recipient_email: str,
+        citizen_name: str,
+        ref_number: str,
+        crime_type: str,
+        risk_level: str,
+        summary: str,
+        pdf_path: Optional[str] = None,
+        date_str: Optional[str] = None
+    ):
+        """
+        Dispatches complaint report confirmation email with attached PDF to the citizen in a background thread.
+        Never blocks or crashes the caller request.
+        """
+        app = current_app._get_current_object() if current_app else None
+
+        def worker():
+            if app:
+                with app.app_context():
+                    cls._dispatch_citizen_submission_worker(
+                        user_id, recipient_email, citizen_name, ref_number, crime_type, risk_level, summary, pdf_path, date_str
+                    )
+            else:
+                cls._dispatch_citizen_submission_worker(
+                    user_id, recipient_email, citizen_name, ref_number, crime_type, risk_level, summary, pdf_path, date_str
+                )
+
+        thread = threading.Thread(target=worker, daemon=True)
+        thread.start()
+
+    @classmethod
+    def _dispatch_citizen_submission_worker(
+        cls,
+        user_id: Optional[int],
+        recipient_email: str,
+        citizen_name: str,
+        ref_number: str,
+        crime_type: str,
+        risk_level: str,
+        summary: str,
+        pdf_path: Optional[str] = None,
+        date_str: Optional[str] = None
+    ):
+        """Worker executing citizen confirmation email dispatch and logging."""
+        if not recipient_email or '@' not in recipient_email:
+            logger.warning(f"[NotificationService] Invalid citizen email: '{recipient_email}'")
+            return
+
+        from backend.services.messaging.email_provider import EmailProvider
+        email_provider = EmailProvider(current_app.config if current_app else {})
+
+        formatted_date = date_str or datetime.now().strftime('%d %B %Y, %I:%M %p')
+        masked_recip = mask_email(recipient_email)
+
+        try:
+            res = email_provider.send_citizen_complaint_report(
+                to_email=recipient_email,
+                citizen_name=citizen_name or "Citizen",
+                ref_number=ref_number,
+                crime_type=crime_type,
+                risk_level=risk_level,
+                date_str=formatted_date,
+                summary=summary,
+                pdf_path=pdf_path
+            )
+
+            log_entry = NotificationLog(
+                recipient_type='citizen',
+                recipient_ref=masked_recip,
+                channel='email',
+                template='citizen_complaint_report',
+                provider_message_id=res.provider_message_id if res.success else None,
+                status='sent' if res.success else 'failed',
+                error=res.error if not res.success else None,
+                created_at=datetime.utcnow()
+            )
+            db.session.add(log_entry)
+            db.session.commit()
+
+            if user_id:
+                action = 'CITIZEN_REPORT_EMAIL_SENT' if res.success else 'CITIZEN_REPORT_EMAIL_FAILED'
+                record_audit_ledger(user_id, action, f"Complaint report email for {ref_number} dispatched to {masked_recip}")
+
+        except Exception as e:
+            logger.error(f"[NotificationService] Unexpected error sending citizen report email for {ref_number}: {e}")
+            try:
+                log_entry = NotificationLog(
+                    recipient_type='citizen',
+                    recipient_ref=masked_recip,
+                    channel='email',
+                    template='citizen_complaint_report',
+                    provider_message_id=None,
+                    status='failed',
+                    error=str(e),
+                    created_at=datetime.utcnow()
+                )
+                db.session.add(log_entry)
+                db.session.commit()
+            except Exception:
+                pass
 
     @classmethod
     def notify_guardians_async(
@@ -29,10 +149,13 @@ class NotificationService:
         event_type: str,
         case_ref: str,
         context: Optional[Dict[str, Any]] = None,
+        share_pdf: bool = False,
+        pdf_path: Optional[str] = None,
+        crime_type: Optional[str] = None,
         max_retries: int = 3
     ):
         """
-        Dispatches notification in a background thread with exponential backoff (max 3 tries).
+        Dispatches notification to verified guardians in a background thread with exponential backoff.
         Ensures the HTTP request returns immediately without blocking.
         """
         app = current_app._get_current_object() if current_app else None
@@ -40,9 +163,27 @@ class NotificationService:
         def worker():
             if app:
                 with app.app_context():
-                    cls._dispatch_guardians_worker(user_id, event_type, case_ref, context or {}, max_retries)
+                    cls._dispatch_guardians_worker(
+                        user_id=user_id,
+                        event_type=event_type,
+                        case_ref=case_ref,
+                        context=context or {},
+                        share_pdf=share_pdf,
+                        pdf_path=pdf_path,
+                        crime_type=crime_type,
+                        max_retries=max_retries
+                    )
             else:
-                cls._dispatch_guardians_worker(user_id, event_type, case_ref, context or {}, max_retries)
+                cls._dispatch_guardians_worker(
+                    user_id=user_id,
+                    event_type=event_type,
+                    case_ref=case_ref,
+                    context=context or {},
+                    share_pdf=share_pdf,
+                    pdf_path=pdf_path,
+                    crime_type=crime_type,
+                    max_retries=max_retries
+                )
 
         thread = threading.Thread(target=worker, daemon=True)
         thread.start()
@@ -72,7 +213,7 @@ class NotificationService:
             ec_phone = (emergency_contact.phone or '').strip()
 
             # Ensure not user's own contact details
-            if ec_email != user_email or ec_phone != user_phone:
+            if (ec_email and ec_email != user_email) or (ec_phone and ec_phone != user_phone):
                 g_match = None
                 if ec_phone:
                     g_match = Guardian.query.filter_by(user_id=user_id, phone_number=ec_phone).first()
@@ -120,16 +261,28 @@ class NotificationService:
         event_type: str,
         case_ref: str,
         context: Dict[str, Any],
+        share_pdf: bool = False,
+        pdf_path: Optional[str] = None,
+        crime_type: Optional[str] = None,
         max_retries: int = 3
     ):
         """Worker executing guardian notification logic and delivery logging."""
         user = User.query.get(user_id)
         ward_name = user.fullname if user else "Citizen Ward"
+        crime_category = crime_type or context.get('crime_type') or ''
+
+        # Sensitive category defense: NEVER attach full report PDF for sensitive categories
+        is_sensitive = is_sensitive_crime_category(crime_category)
+        if share_pdf and is_sensitive:
+            logger.info(f"[NotificationService] Sensitive crime category '{crime_category}' - PDF report attachment suppressed for guardian alert.")
+            attach_pdf_to_guardian = False
+        else:
+            attach_pdf_to_guardian = bool(share_pdf and pdf_path)
 
         guardians, skip_reasons = cls.get_verified_recipients(user_id)
 
         if not guardians:
-            reason_str = "; ".join(skip_reasons) if skip_reasons else "No verified emergency guardians found."
+            reason_str = "; ".join(skip_reasons) if skip_reasons else "Trusted contact not confirmed, so no copy was sent."
             logger.info(f"[NotificationService] User {user_id} alert '{event_type}' skipped: {reason_str}")
 
             log_entry = NotificationLog(
@@ -147,8 +300,6 @@ class NotificationService:
 
             record_audit_ledger(user_id, 'GUARDIAN_ALERT_SKIPPED', f"Alert '{event_type}' for Case {case_ref} skipped: {reason_str}")
             return
-
-        configured_provider = (current_app.config.get('MESSAGING_PROVIDER') or 'email').lower() if current_app else 'email'
 
         for guardian in guardians:
             # Determine channel: prioritize Email if guardian has an email address or provider is email
@@ -198,13 +349,14 @@ class NotificationService:
                             ward_name=ward_name,
                             case_ref=case_ref,
                             event_type=event_type,
-                            context=context
+                            context=context,
+                            attach_pdf=attach_pdf_to_guardian,
+                            pdf_path=pdf_path
                         )
                     else:
                         # Fallback for phone-only guardian
                         provider = get_messaging_provider()
                         if provider.name == 'email':
-                            # Email provider cannot send raw SMS; use console simulation in dev/fallback
                             logger.warning(f"[NotificationService] Guardian {guardian_name} has no email ({masked_recipient}). Simulating via Console Provider.")
                             from backend.services.messaging.console_provider import ConsoleProvider
                             res = ConsoleProvider().send_sms(guardian_phone, message_body)
@@ -259,6 +411,75 @@ class NotificationService:
             # Record in ActivityLog
             action_name = 'GUARDIAN_ALERT_SENT' if success else 'GUARDIAN_ALERT_FAILED'
             record_audit_ledger(user_id, action_name, f"Event '{event_type}' for Case {case_ref} notified to guardian {guardian_name} ({masked_recipient})")
+
+    @classmethod
+    def resend_complaint_emails(cls, complaint_id: int) -> Tuple[bool, str]:
+        """Resends the official complaint report PDF to citizen and alert to verified guardians."""
+        complaint = Complaint.query.get(complaint_id)
+        if not complaint:
+            return False, "Complaint record not found."
+
+        from pathlib import Path
+        from pdf.report_generator import generate_complaint_pdf
+        pdf_dir = Path(current_app.root_path) / 'static' / 'generated_pdfs'
+        pdf_dir.mkdir(parents=True, exist_ok=True)
+        pdf_path = str(pdf_dir / f"{complaint.reference_number}.pdf")
+
+        if not Path(pdf_path).exists():
+            complaint_data = {
+                'reference_number': complaint.reference_number,
+                'crime_type': complaint.crime_type,
+                'risk_level': complaint.risk_level,
+                'created_at_str': complaint.created_at.strftime('%d %B %Y, %I:%M %p') if complaint.created_at else '',
+                'user_name': complaint.user.fullname if complaint.user else 'Anonymous Citizen',
+                'user_email': complaint.user.email if complaint.user else 'Not Provided',
+                'user_phone': complaint.user.phone if complaint.user else 'Not Provided',
+                'description': complaint.description,
+                'answers': complaint.answers,
+                'guidance': complaint.guidance,
+                'evidence_meta': complaint.evidence_meta,
+                'claimed_amount': complaint.claimed_amount,
+                'amount_verification_status': complaint.amount_verification_status,
+                'amount_verification_details': complaint.amount_verification_details
+            }
+            try:
+                generate_complaint_pdf(complaint_data, pdf_path)
+            except Exception as e:
+                logger.error(f"Error regenerating complaint PDF for resend: {e}")
+
+        # Send to citizen
+        recipient_email = complaint.user.email if complaint.user else None
+        if recipient_email:
+            cls.send_citizen_submission_async(
+                user_id=complaint.user_id,
+                recipient_email=recipient_email,
+                citizen_name=complaint.user.fullname if complaint.user else 'Citizen',
+                ref_number=complaint.reference_number,
+                crime_type=complaint.crime_type,
+                risk_level=complaint.risk_level,
+                summary=complaint.description,
+                pdf_path=pdf_path if Path(pdf_path).exists() else None,
+                date_str=complaint.created_at.strftime('%d %B %Y, %I:%M %p') if complaint.created_at else None
+            )
+
+        # Send to guardian
+        if complaint.user_id:
+            cls.notify_guardians_async(
+                user_id=complaint.user_id,
+                event_type='complaint_submitted',
+                case_ref=complaint.reference_number,
+                context={
+                    'status': complaint.status,
+                    'new_status': complaint.status,
+                    'crime_type': complaint.crime_type,
+                    'date_str': complaint.created_at.strftime('%d %B %Y') if complaint.created_at else None
+                },
+                share_pdf=bool(complaint.share_report_with_guardian),
+                pdf_path=pdf_path if Path(pdf_path).exists() else None,
+                crime_type=complaint.crime_type
+            )
+
+        return True, "Complaint report email has been queued for re-delivery."
 
     @classmethod
     def send_test_alert(cls, user_id: int) -> Tuple[bool, str]:

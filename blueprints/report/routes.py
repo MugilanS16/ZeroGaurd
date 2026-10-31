@@ -366,6 +366,9 @@ def report_submit():
     else:
         rel_status = 'Inconclusive'
     
+    # Extract guardian PDF share choice from form
+    share_with_guardian = str(request.form.get('share_report_with_guardian', '')).lower() in ('1', 'true', 'on', 'yes')
+
     # Save complaint to database
     complaint = Complaint(
         user_id=user.id if user else None,
@@ -385,14 +388,16 @@ def report_submit():
         evidence_relevance_status=rel_status,
         evidence_relevance_details=relevance_verif,
         pdf_filename=f"{ref_number}.pdf",
+        share_report_with_guardian=share_with_guardian,
         status='Pending',
         created_at=datetime.now(timezone.utc)
     )
     db.session.add(complaint)
     db.session.commit()
 
-    # Generate ReportLab PDF
+    # Generate ReportLab PDF (Police-ready dossier)
     pdf_dir = Path(current_app.root_path) / 'static' / 'generated_pdfs'
+    pdf_dir.mkdir(parents=True, exist_ok=True)
     pdf_path = str(pdf_dir / f"{ref_number}.pdf")
     
     complaint_data = {
@@ -421,51 +426,84 @@ def report_submit():
     purged_count = purge_evidence_files(draft.get('evidence_meta', []))
     current_app.logger.info(f"Auto-purged {purged_count} temporary evidence files for {ref_number}")
 
-    # Send confirmation email
+    # Asynchronous background email to citizen
     recipient_email = user.email if user else request.form.get('guest_email')
     if recipient_email:
-        send_submission_notification(
+        NotificationService.send_citizen_submission_async(
+            user_id=user.id if user else None,
             recipient_email=recipient_email,
-            user_name=user.fullname if user else 'Citizen',
+            citizen_name=user.fullname if user else 'Citizen',
             ref_number=ref_number,
             crime_type=complaint.crime_type,
             risk_level=complaint.risk_level,
-            pdf_path=pdf_path
+            summary=complaint.description,
+            pdf_path=pdf_path if os.path.exists(pdf_path) else None,
+            date_str=datetime.now().strftime('%d %B %Y, %I:%M %p')
         )
 
-    # Dispatch async guardian notifications (Sanitized: only Ref ID and Status)
+    # Asynchronous background alert to verified guardians
+    has_verified_guardian = False
     if user:
-        # Check if high-risk or Golden Hour alert applies
-        if complaint.risk_level in ('Critical', 'High') or (complaint.claimed_amount and complaint.claimed_amount > 10000):
-            NotificationService.notify_guardians_async(
-                user_id=user.id,
-                event_type='high_risk_alert',
-                case_ref=ref_number,
-                context={'status': complaint.status, 'new_status': complaint.status, 'crime_type': complaint.crime_type}
-            )
-        else:
-            NotificationService.notify_guardians_async(
-                user_id=user.id,
-                event_type='complaint_submitted',
-                case_ref=ref_number,
-                context={'status': complaint.status, 'new_status': complaint.status, 'crime_type': complaint.crime_type}
-            )
+        verified_guardians, _ = NotificationService.get_verified_recipients(user.id)
+        has_verified_guardian = bool(verified_guardians)
+
+        event_type = 'high_risk_alert' if (complaint.risk_level in ('Critical', 'High') or (complaint.claimed_amount and complaint.claimed_amount > 10000)) else 'complaint_submitted'
+        
+        NotificationService.notify_guardians_async(
+            user_id=user.id,
+            event_type=event_type,
+            case_ref=ref_number,
+            context={
+                'status': complaint.status,
+                'new_status': complaint.status,
+                'crime_type': complaint.crime_type,
+                'date_str': datetime.now().strftime('%d %B %Y')
+            },
+            share_pdf=share_with_guardian,
+            pdf_path=pdf_path if os.path.exists(pdf_path) else None,
+            crime_type=complaint.crime_type
+        )
 
     # Clear draft from session
     session.pop('report_draft', None)
 
-    return render_template('report/step5_success.html', complaint=complaint, ref_number=ref_number)
+    return render_template(
+        'report/step5_success.html',
+        complaint=complaint,
+        ref_number=ref_number,
+        user_email=recipient_email,
+        has_verified_guardian=has_verified_guardian,
+        share_with_guardian=share_with_guardian
+    )
 
+@report_bp.route('/complaint/<reference_number>/report.pdf')
 @report_bp.route('/download-pdf/<reference_number>')
 @report_bp.route('/report/download-pdf/<reference_number>')
 @login_required
 def download_pdf(reference_number):
-    """Allows downloading the official complaint PDF."""
-    pdf_path = Path(current_app.root_path) / 'static' / 'generated_pdfs' / f"{reference_number}.pdf"
+    """
+    Secure endpoint allowing authenticated citizens to download their official ReportLab PDF.
+    Enforces strict ownership access control (owner or admin only).
+    """
+    clean_ref = reference_number.strip()
+    complaint = Complaint.query.filter(Complaint.reference_number.ilike(clean_ref)).first()
+    if not complaint:
+        abort(404)
+
+    # Check ownership
+    current_user_id = session.get('user_id')
+    current_role = session.get('role', 'citizen')
+    is_owner = (complaint.user_id and complaint.user_id == current_user_id)
+    is_admin = (current_role == 'admin')
+
+    if not (is_owner or is_admin):
+        abort(403)
+
+    pdf_dir = Path(current_app.root_path) / 'static' / 'generated_pdfs'
+    pdf_dir.mkdir(parents=True, exist_ok=True)
+    pdf_path = pdf_dir / f"{complaint.reference_number}.pdf"
+
     if not pdf_path.exists():
-        complaint = Complaint.query.filter_by(reference_number=reference_number).first()
-        if not complaint:
-            abort(404)
         complaint_data = {
             'reference_number': complaint.reference_number,
             'crime_type': complaint.crime_type,
@@ -484,7 +522,35 @@ def download_pdf(reference_number):
         }
         generate_complaint_pdf(complaint_data, str(pdf_path))
 
-    return send_file(pdf_path, as_attachment=True, download_name=f"{reference_number}_Complaint.pdf")
+    return send_file(
+        str(pdf_path),
+        as_attachment=True,
+        download_name=f"ZeroGuard_Report_{complaint.reference_number}.pdf",
+        mimetype="application/pdf"
+    )
+
+
+@report_bp.route('/complaint/<reference_number>/resend-email', methods=['POST'])
+@login_required
+def resend_report_email(reference_number):
+    """Resends the complaint report email to the citizen and guardian notification."""
+    clean_ref = reference_number.strip()
+    complaint = Complaint.query.filter(Complaint.reference_number.ilike(clean_ref)).first()
+    if not complaint:
+        abort(404)
+
+    current_user_id = session.get('user_id')
+    current_role = session.get('role', 'citizen')
+    if not (complaint.user_id == current_user_id or current_role == 'admin'):
+        abort(403)
+
+    success, msg = NotificationService.resend_complaint_emails(complaint.id)
+    if success:
+        flash("Official complaint report email has been resent to your registered email address.", "success")
+    else:
+        flash(f"Unable to resend email: {msg}", "danger")
+
+    return redirect(request.referrer or url_for('dashboard.index'))
 
 
 # =====================================================================
@@ -503,6 +569,7 @@ def api_submit_report():
     severity = data.get('severity', 'Medium')
     answers = data.get('answers', [])
     guidance = data.get('guidance', [])
+    share_with_guardian = bool(data.get('share_report_with_guardian', False))
 
     year = datetime.now().year
     rand_num = random.randint(10000, 99999)
@@ -528,20 +595,64 @@ def api_submit_report():
         guidance=guidance,
         evidence_meta=[],
         pdf_filename=f"{ref_number}.pdf",
+        share_report_with_guardian=share_with_guardian,
         status='Pending',
         created_at=datetime.now(timezone.utc)
     )
     db.session.add(complaint)
     db.session.commit()
 
+    # Generate PDF in background
+    pdf_dir = Path(current_app.root_path) / 'static' / 'generated_pdfs'
+    pdf_dir.mkdir(parents=True, exist_ok=True)
+    pdf_path = str(pdf_dir / f"{ref_number}.pdf")
+    try:
+        complaint_data = {
+            'reference_number': ref_number,
+            'crime_type': complaint.crime_type,
+            'risk_level': complaint.risk_level,
+            'created_at_str': datetime.now().strftime('%d %B %Y, %I:%M %p'),
+            'user_name': user.fullname if user else 'Anonymous Citizen',
+            'user_email': user.email if user else 'Not Provided',
+            'user_phone': user.phone if user else 'Not Provided',
+            'description': complaint.description,
+            'answers': complaint.answers,
+            'guidance': complaint.guidance,
+            'evidence_meta': complaint.evidence_meta,
+            'claimed_amount': complaint.claimed_amount,
+            'amount_verification_status': complaint.amount_verification_status,
+            'amount_verification_details': complaint.amount_verification_details
+        }
+        generate_complaint_pdf(complaint_data, pdf_path)
+    except Exception as e:
+        current_app.logger.error(f"Error compiling complaint PDF: {e}")
+
     if user:
         from blueprints.auth.routes import log_activity
         log_activity(user.id, 'report_submitted', f"Complaint registered with ref #{ref_number}", request)
+        
+        # Async Citizen Email
+        if user.email:
+            NotificationService.send_citizen_submission_async(
+                user_id=user.id,
+                recipient_email=user.email,
+                citizen_name=user.fullname,
+                ref_number=ref_number,
+                crime_type=complaint.crime_type,
+                risk_level=complaint.risk_level,
+                summary=complaint.description,
+                pdf_path=pdf_path if os.path.exists(pdf_path) else None
+            )
+
+        # Async Guardian Alert
         NotificationService.notify_guardians_async(
             user_id=user.id,
             event_type='complaint_submitted',
             case_ref=ref_number,
-            context={'status': 'Pending', 'new_status': 'Pending'}
+            context={'status': 'Pending', 'new_status': 'Pending', 'crime_type': complaint.crime_type},
+            share_pdf=share_with_guardian,
+            pdf_path=pdf_path if os.path.exists(pdf_path) else None,
+            crime_type=complaint.crime_type
         )
 
     return jsonify({

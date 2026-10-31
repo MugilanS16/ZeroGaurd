@@ -32,7 +32,7 @@
     </p>
 
     <!-- Reference Number Display Box -->
-    <div style="background: var(--bg-surface-subtle); border: 2px dashed var(--primary); border-radius: var(--radius-lg); padding: 1.5rem; max-width: 480px; margin: 0 auto 2rem;">
+    <div style="background: var(--bg-surface-subtle); border: 2px dashed var(--primary); border-radius: var(--radius-lg); padding: 1.5rem; max-width: 480px; margin: 0 auto 1.5rem;">
       <div style="font-size: 0.85rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px;">
         Complaint Reference Code
       </div>
@@ -46,16 +46,45 @@
       </div>
     </div>
 
-    <!-- Action Buttons: Download PDF & Track -->
-    <div class="flex items-center justify-center gap-3" style="flex-wrap: wrap; margin-bottom: 2.5rem;">
-      <a href="{{ url_for('report.download_pdf', reference_number=ref_number) }}" class="btn btn-primary btn-lg" style="box-shadow: var(--shadow-md);">
+    <!-- Email Dispatch & Guardian Copy Notification Box -->
+    <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1rem 1.25rem; max-width: 540px; margin: 0 auto 1.75rem; text-align: left; font-size: 0.88rem;">
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+        <span>📧</span>
+        <strong style="color: var(--text-main);">Official Email Dispatch:</strong>
+      </div>
+      <div style="color: var(--text-muted); margin-left: 1.5rem; line-height: 1.5;">
+        <div>A copy of your complaint report PDF has been sent to <strong>{{ user_email or (current_user.email if current_user else 'your email') }}</strong>.</div>
+        <div style="margin-top: 0.35rem;">
+          {% if has_verified_guardian %}
+            <span style="color: var(--accent-green);">🛡️ Verified trusted contact has been notified of this filing.</span>
+          {% else %}
+            <span style="color: var(--warning);">⚠️ Trusted contact not confirmed, so no copy was sent.</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons: Download PDF, Resend Email & Track -->
+    <div class="flex items-center justify-center gap-3" style="flex-wrap: wrap; margin-bottom: 2rem;">
+      <a href="{{ url_for('report.download_pdf', reference_number=ref_number) }}" class="btn btn-primary btn-lg" style="box-shadow: var(--shadow-md);" id="download-report-pdf-btn">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>
         </svg>
-        <span>Download Official PDF Complaint</span>
+        <span>Download Report (PDF)</span>
       </a>
+
+      <form method="POST" action="{{ url_for('report.resend_report_email', reference_number=ref_number) }}" style="margin: 0;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-outline btn-lg" title="Resend complaint report PDF email">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          <span>Resend Report Email</span>
+        </button>
+      </form>
 
       <a href="{{ url_for('tracker.track', ref=ref_number) }}" class="btn btn-outline btn-lg">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

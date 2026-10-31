@@ -38,7 +38,7 @@
   <!-- Emergency Trusted Contact Banner / Status -->
   {% set active_guardian = guardians[0] if guardians else None %}
   {% if emergency_contact %}
-    <div class="card" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); padding: 1.15rem 1.5rem; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1.25rem; flex-wrap: wrap;">
+    <div class="card" style="padding: 1.15rem 1.5rem; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1.25rem; flex-wrap: wrap;">
       <div style="display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 280px;">
         <div style="width: 42px; height: 42px; border-radius: var(--radius-full); background: {% if active_guardian and active_guardian.verified %}rgba(16, 185, 129, 0.15); color: #10b981;{% else %}rgba(245, 158, 11, 0.15); color: var(--warning);{% endif %} display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">
           🛡️
@@ -211,13 +211,13 @@
                   <a href="{{ url_for('tracker.track', ref=c.reference_number) }}" class="btn btn-outline btn-sm" title="Track Live Status">
                     Track &rarr;
                   </a>
-                  <a href="{{ url_for('report.download_pdf', reference_number=c.reference_number) }}" class="btn btn-primary btn-sm" title="Download Verified PDF">
+                  <a href="{{ url_for('report.download_pdf', reference_number=c.reference_number) }}" class="btn btn-primary btn-sm" title="Download Report (PDF)">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                       <polyline points="7 10 12 15 17 10"></polyline>
                       <line x1="12" y1="15" x2="12" y2="3"></line>
                     </svg>
-                    PDF
+                    <span>Download Report (PDF)</span>
                   </a>
                 </div>
               </td>

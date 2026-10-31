@@ -18,3 +18,4 @@ frontend/node_modules/
 *.pdf
 tests/
 test_*.py
+

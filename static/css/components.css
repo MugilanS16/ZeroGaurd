@@ -1,10 +1,73 @@
-/* ZeroGuard AI Component Design System */
+/* ==========================================
+   Hero Banner Component (Home Page)
+   ========================================== */
+.hero-cyber-banner {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+  margin-top: -2rem;
+  min-height: 80vh;
+  padding: 5rem 1.5rem 4.5rem;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background: transparent;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 3;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2.75rem 2.25rem;
+  /* Stronger radial dark area behind the centre of the hero (about 85% dark) */
+  background: radial-gradient(ellipse 90% 85% at 50% 50%, rgba(3, 8, 14, 0.85) 0%, rgba(3, 8, 14, 0.60) 65%, rgba(3, 8, 14, 0.15) 90%, transparent 100%);
+  border-radius: var(--radius-xl);
+}
+
+.hero-content h1 {
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.95), 0 1px 4px rgba(0, 0, 0, 0.9);
+}
+
+.hero-content p {
+  color: #f1f5f9 !important;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9), 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+[data-theme="light"] .hero-content {
+  background: radial-gradient(ellipse 90% 85% at 50% 50%, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.75) 65%, rgba(255, 255, 255, 0.25) 90%, transparent 100%);
+}
+
+[data-theme="light"] .hero-content h1 {
+  text-shadow: 0 1px 8px rgba(255, 255, 255, 0.9);
+  color: #0f172a;
+}
+
+[data-theme="light"] .hero-content p {
+  color: #1e293b !important;
+  text-shadow: none;
+}
+
+@media (max-width: 768px) {
+  .hero-cyber-banner {
+    min-height: auto;
+    padding: 3.5rem 1rem 3rem;
+    margin-top: -1.25rem;
+  }
+  .hero-content {
+    padding: 1.75rem 1rem;
+  }
+}
 
 /* ==========================================
    1. Header & Navigation
    ========================================== */
 .navbar {
-  background-color: var(--bg-surface);
+  background-color: rgba(15, 23, 42, 0.85);
   border-bottom: 1px solid var(--border-subtle);
   position: sticky;
   top: 0;
@@ -13,6 +76,11 @@
   -webkit-backdrop-filter: blur(16px);
   box-shadow: var(--shadow-sm);
   transition: all var(--transition-normal);
+}
+
+[data-theme="light"] .navbar {
+  background-color: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .navbar-container {
@@ -34,28 +102,35 @@
 }
 
 .brand-icon {
-  width: 40px;
-  height: 40px;
-  background: var(--ai-gradient);
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(135deg, #0f766e 0%, #0369a1 100%);
+  border: 1px solid rgba(20, 184, 166, 0.4);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 10px rgba(15, 118, 110, 0.3);
   flex-shrink: 0;
 }
 
 .brand-badge {
   font-size: 0.65rem;
   font-weight: 700;
-  background: var(--ai-purple-light);
-  color: var(--ai-purple);
+  background: rgba(15, 118, 110, 0.2);
+  color: #14b8a6;
   padding: 0.15rem 0.5rem;
   border-radius: var(--radius-full);
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  border: 1px solid var(--border-ai);
+  border: 1px solid rgba(20, 184, 166, 0.35);
+}
+
+[data-theme="light"] .brand-badge {
+  background: rgba(15, 118, 110, 0.1);
+  color: #0f766e;
+  border-color: rgba(15, 118, 110, 0.25);
 }
 
 .nav-menu-wrapper {
@@ -208,9 +283,14 @@
 }
 
 .btn-outline {
-  background-color: transparent;
+  background-color: rgba(15, 23, 42, 0.5);
   border-color: var(--border-subtle);
   color: var(--text-main);
+  backdrop-filter: blur(8px);
+}
+
+[data-theme="light"] .btn-outline {
+  background-color: rgba(255, 255, 255, 0.8);
 }
 
 .btn-outline:hover {
@@ -220,14 +300,15 @@
 }
 
 .btn-ai {
-  background: var(--ai-gradient);
+  background: linear-gradient(135deg, #0f766e 0%, #0284c7 100%);
   color: #FFFFFF;
   box-shadow: var(--ai-glow);
-  border: none;
+  border: 1px solid rgba(20, 184, 166, 0.3);
 }
 
 .btn-ai:hover {
-  box-shadow: 0 6px 24px rgba(99, 102, 241, 0.45);
+  background: linear-gradient(135deg, #115e59 0%, #0369a1 100%);
+  box-shadow: 0 4px 18px rgba(15, 118, 110, 0.4);
   transform: translateY(-1px);
   color: #FFFFFF;
 }
@@ -238,7 +319,7 @@
 }
 
 .btn-success:hover {
-  background-color: #16A34A;
+  background-color: #059669;
   color: #FFFFFF;
   transform: translateY(-1px);
 }
@@ -284,7 +365,9 @@
    3. Cards & Surfaces
    ========================================== */
 .card {
-  background-color: var(--bg-surface);
+  background-color: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
@@ -294,31 +377,47 @@
 }
 
 .card:hover {
-  border-color: rgba(59, 130, 246, 0.3);
+  border-color: rgba(2, 132, 199, 0.35);
 }
 
 .card-elevated {
-  background-color: var(--bg-surface-elevated);
+  background-color: rgba(30, 41, 59, 0.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(20, 184, 166, 0.25);
+  box-shadow: var(--shadow-lg);
+}
+
+[data-theme="light"] .card {
+  background-color: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-md);
+}
+
+[data-theme="light"] .card-elevated {
+  background-color: rgba(248, 250, 252, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
 }
 
 .ai-card {
-  background: linear-gradient(180deg, var(--ai-purple-light) 0%, var(--bg-surface) 100%);
-  border: 1.5px solid var(--border-ai);
+  background: linear-gradient(180deg, rgba(15, 118, 110, 0.1) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border: 1px solid rgba(20, 184, 166, 0.35);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   position: relative;
   overflow: hidden;
-  box-shadow: var(--ai-glow);
+  box-shadow: var(--shadow-card);
 }
 
 .ai-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  background: var(--ai-gradient);
-  color: white;
+  background: rgba(15, 118, 110, 0.2);
+  color: #14b8a6;
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.25rem 0.65rem;
@@ -326,7 +425,12 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 0.75rem;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  border: 1px solid rgba(20, 184, 166, 0.35);
+}
+
+[data-theme="light"] .ai-badge {
+  background: rgba(15, 118, 110, 0.1);
+  color: #0f766e;
 }
 
 /* Stat KPI Cards */
@@ -455,7 +559,7 @@
   padding: 0.75rem 1rem;
   font-size: 0.95rem;
   font-family: var(--font-family);
-  background-color: var(--bg-surface-subtle);
+  background-color: rgba(11, 19, 36, 0.75);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   color: var(--text-main);
@@ -466,7 +570,16 @@
   outline: none;
   border-color: var(--border-focus);
   box-shadow: 0 0 0 3px var(--primary-light);
-  background-color: var(--bg-surface);
+  background-color: rgba(15, 23, 42, 0.95);
+}
+
+[data-theme="light"] .form-control {
+  background-color: rgba(248, 250, 252, 0.9);
+  color: var(--text-main);
+}
+
+[data-theme="light"] .form-control:focus {
+  background-color: #ffffff;
 }
 
 .form-control::placeholder {

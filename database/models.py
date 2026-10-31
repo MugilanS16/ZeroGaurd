@@ -96,6 +96,7 @@ class Complaint(db.Model):
     evidence_relevance_details_json = db.Column(db.Text, default='{}', nullable=False)
     
     pdf_filename = db.Column(db.String(120), nullable=True)
+    share_report_with_guardian = db.Column(db.Boolean, default=False, nullable=False)
     status = db.Column(db.String(30), default='Pending', nullable=False, index=True) # Pending, In Review, Resolved
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
@@ -182,6 +183,7 @@ class Complaint(db.Model):
             'evidence_relevance_status': self.evidence_relevance_status,
             'evidence_relevance_details': self.evidence_relevance_details,
             'pdf_filename': self.pdf_filename,
+            'share_report_with_guardian': bool(self.share_report_with_guardian),
             'status': self.status,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
             'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else None

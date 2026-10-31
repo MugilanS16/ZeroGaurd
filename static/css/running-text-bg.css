@@ -1,0 +1,112 @@
+/* ZeroGuard AI - Animated Cyber Matrix Running Text Background */
+
+.running-text-bg-container {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -2;
+  pointer-events: none;
+  overflow: hidden;
+  background-color: #010604;
+  user-select: none;
+  contain: strict;
+}
+
+.running-text-bg-wrapper {
+  position: absolute;
+  inset: -8vh -25vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  opacity: 0.95;
+  transform: rotate(-1.5deg);
+  transform-origin: center;
+}
+
+.running-text-row {
+  white-space: nowrap;
+  line-height: 1.35;
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  letter-spacing: 0.5px;
+}
+
+.running-text-track {
+  display: inline-flex;
+  white-space: nowrap;
+  gap: 2.5rem;
+  padding-right: 2.5rem;
+}
+
+/* Transform keyframes for seamless hardware-accelerated scrolling */
+@keyframes scrollLeft {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes scrollRight {
+  0% {
+    transform: translate3d(-50%, 0, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.running-text-row.move-left {
+  animation: scrollLeft var(--row-duration, 60s) linear infinite;
+}
+
+.running-text-row.move-right {
+  animation: scrollRight var(--row-duration, 60s) linear infinite;
+}
+
+/* Pause animation on demand / tab hidden */
+.running-text-bg-container.paused .running-text-row {
+  animation-play-state: paused !important;
+}
+
+/* Accessibility: respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .running-text-row {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* Global Semi-Transparent Dark Tint Overlay (rgba(3,8,14,0.55)) */
+.running-text-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: rgba(3, 8, 14, 0.55);
+  transition: background var(--transition-normal);
+}
+
+/* Form Pages & Cards: Darker Overlay (~75% dark) for optimal form readability */
+body:has(form) .running-text-overlay,
+body.form-page .running-text-overlay,
+.page-dark-dim .running-text-overlay {
+  background: rgba(3, 8, 14, 0.75);
+}
+
+/* Light Theme Overrides */
+[data-theme="light"] .running-text-bg-container {
+  background-color: #020804;
+}
+
+[data-theme="light"] .running-text-overlay {
+  background: rgba(241, 245, 249, 0.88);
+}
+
+[data-theme="light"] body:has(form) .running-text-overlay,
+[data-theme="light"] body.form-page .running-text-overlay {
+  background: rgba(241, 245, 249, 0.94);
+}
