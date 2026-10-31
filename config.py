@@ -16,13 +16,12 @@ class Config:
     SQLALCHEMY_DATABASE_URI = _raw_db_uri
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    @property
-    def SQLALCHEMY_ENGINE_OPTIONS(self):
-        """Return engine options appropriate for the database backend."""
-        uri = self.SQLALCHEMY_DATABASE_URI or ''
-        if uri.startswith('sqlite'):
-            return {'connect_args': {'timeout': 30}}
-        return {}
+    # Engine options appropriate for the database backend
+    SQLALCHEMY_ENGINE_OPTIONS = (
+        {'connect_args': {'timeout': 30}}
+        if _raw_db_uri and _raw_db_uri.startswith('sqlite')
+        else {}
+    )
     
     # Upload & Session configuration
     UPLOAD_FOLDER = BASE_DIR / 'session_uploads'
